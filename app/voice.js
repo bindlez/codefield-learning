@@ -4,7 +4,19 @@ import {parseVoiceCommand, resolveVoiceSelection} from '../src/voice-commands.js
 const $ = selector => document.querySelector(selector);
 const language = $('#language'), status = $('#status'), output = $('#output');
 languageOptions(language, localStorage.getItem('codefield.voice.language') || 'javascript');
-let editor, recognition, listening = false, controller;
+let editor, recognition, listening = false, controller, pendingAction = null;
+const remoteConsent = new Set();
+const confirmBox=document.createElement('div'); confirmBox.hidden=true;
+confirmBox.innerHTML='<button type="button" id="voice-confirm">Confirm</button> <button type="button" id="voice-cancel">Cancel</button>';
+status.after(confirmBox);
+function askConfirmation(action,message) { pendingAction=action; confirmBox.hidden=false; status.textContent=message; }
+function cancelConfirmation() { pendingAction=null; confirmBox.hidden=true; status.textContent='Cancelled.'; }
+function confirmAction() {
+  const action=pendingAction; pendingAction=null; confirmBox.hidden=true;
+  if(action==='delete') { editor.insert(''); status.textContent='Selection deleted. Say undo to restore it.'; }
+  if(action==='run-remote') { remoteConsent.add(language.value); run(); }
+}
+$('#voice-confirm').onclick=confirmAction; $('#voice-cancel').onclick=cancelConfirmation;
 function mount() {
   editor?.destroy();
   const key = 'codefield.voice.draft.' + language.value;
@@ -13,7 +25,7 @@ function mount() {
 }
 mount(); language.onchange = mount;
 async function run() {
-  if (['rust','cpp','csharp'].includes(language.value) && !window.confirm('Run sends your code to an external compiler service. Continue?')) return;
+  if (['rust','cpp','csharp'].includes(language.value) && !remoteConsent.has(language.value)) { askConfirmation('run-remote','This sends your code to '+(language.value==='rust'?'Rust Playground':'Compiler Explorer')+'. Say “confirm” to run or “cancel”.'); return; }
   controller?.abort(); controller = new AbortController();
   const current = controller;
   output.textContent = 'Running…';
@@ -30,12 +42,16 @@ else {
     for (let i=event.resultIndex;i<event.results.length;i++) {
       if (!event.results[i].isFinal) continue;
       const text=event.results[i][0].transcript.trim(); $('#transcript').textContent=text;
+      if (/^cancel[.!]?$/i.test(text) && pendingAction) { cancelConfirmation(); continue; }
+      if (/^confirm[.!]?$/i.test(text) && pendingAction) { confirmAction(); continue; }
       const command=parseVoiceCommand(text), selection=resolveVoiceSelection(editor.getValue(),editor.getCaret(),command);
       if(selection) { editor.selectRange(selection.start,selection.end); status.textContent='Selected: '+editor.getSelection(); }
       else if(command.type === 'insert-method') { editor.insert('.'+command.name); status.textContent='Inserted method: '+command.name; }
+      else if(command.type === 'insert-symbol') { editor.insert(command.text); status.textContent='Inserted '+text+'.'; }
       else if(command.type !== 'unknown') status.textContent='No unique match or not enough previous words.';
       else if(/^run code[.!]?$/i.test(text)) run();
       else if(/^select all[.!]?$/i.test(text)) { editor.selectRange(0,editor.getValue().length); status.textContent='Selected all code.'; }
+      else if(/^delete selection[.!]?$/i.test(text)) { if(!editor.getSelection()) status.textContent='Nothing is selected.'; else askConfirmation('delete','Say confirm to delete the selected text, or cancel.'); }
       else if(/^undo[.!]?$/i.test(text)) { editor.undo(); status.textContent='Undo requested.'; }
       else if(/^redo[.!]?$/i.test(text)) { editor.redo(); status.textContent='Redo requested.'; }
       else if(/^go to (start|end)[.!]?$/i.test(text)) { const at=/start/i.test(text)?0:editor.getValue().length; editor.selectRange(at,at); status.textContent='Cursor moved.'; }

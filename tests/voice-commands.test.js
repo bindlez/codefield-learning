@@ -17,4 +17,6 @@ test('recognizes speech-friendly counts and method context', () => {
   assert.deepEqual(parseVoiceCommand('highlight back three.'), {type:'highlight-back',count:3});
   assert.deepEqual(parseVoiceCommand('dot tally'), {type:'insert-method',name:'tally'});
   assert.deepEqual(parseVoiceCommand('highlight tally.'), {type:'highlight-name',name:'tally'});
+  assert.deepEqual(parseVoiceCommand('open parenthesis'), {type:'insert-symbol',text:'('});
+  assert.deepEqual(parseVoiceCommand('semicolon'), {type:'insert-symbol',text:';'});
 });
