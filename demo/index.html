@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editor embed prototype</title>
+  <link rel="stylesheet" href="../src/editor.css">
+  <style>body{margin:0;background:#0b1220;color:#e5ecf8;font:1rem/1.6 system-ui}main{max-width:52rem;margin:4rem auto;padding:0 1.5rem}h1{line-height:1.2}p{color:#b2bfd2}code{color:#a9c3ff}button{background:#253752;color:white;border:1px solid #536b91;border-radius:.4rem;padding:.6rem .9rem;font:inherit;cursor:pointer}</style>
+</head>
+<body><main>
+  <p>EARLY PROTOTYPE · EMBEDDABLE EDITOR</p>
+  <h1>A small space to start writing code.</h1>
+  <p>This prototype tests the embed API. Ruby syntax highlighting is an early experiment. Enter preserves leading indentation. Tab moves focus. Code execution and documentation are not available yet.</p>
+  <div id="editor"></div>
+  <p id="status" aria-live="polite">Ready to edit.</p>
+  <button id="reset" type="button">Reset example</button>
+</main>
+<script type="module">
+import { createEditor } from '../src/editor.js';
+import { tokenizeRuby } from '../src/languages/ruby.js';
+const starter = 'word = "hello"\nword.chars.tally';
+const editor = createEditor('#editor', { value: starter, tokenize: tokenizeRuby, autoIndent: true, label: 'Ruby example', onChange: value => { document.querySelector('#status').textContent = `${value.length} characters`; } });
+document.querySelector('#reset').addEventListener('click', () => { editor.setValue(starter); document.querySelector('#status').textContent = 'Example reset.'; editor.focus(); });
+</script></body></html>
+
+

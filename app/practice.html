@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Practice LeetCode-style problems in the browser with published examples, instant results, and a local AI coach.">
+  <title>Practice — Codefield</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../src/editor.css">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./shell.css">
+<link rel="stylesheet" href="./modern.css"></head>
+<body>
+<header class="top">
+  <a class="brand" href="./index.html" aria-label="Codefield home"><span class="brand-icon" aria-hidden="true">⌘</span> codefield <span class="badge">ALPHA 0.4.0</span></a>
+  <nav class="modes" aria-label="Workspace modes">
+    <a href="./index.html">Playground</a>
+    <a href="./beginner.html">Beginner</a><a href="./learn.html">Learn</a>
+    <a href="./practice.html" aria-current="page">Practice</a><a href="./practice.html?mode=problem">Problems</a>
+  </nav>
+  <div class="top-right">
+    <span class="local">● &nbsp;Drafts save here</span>
+    <button id="library-toggle" class="coach-toggle library-toggle" type="button">▤ Library</button>
+    <button id="coach-toggle" class="coach-toggle" type="button"><span class="dot" aria-hidden="true"></span> AI coach</button>
+  </div>
+<a class="offline-link" href="./offline.html">Offline playground</a><button class="offline-link" type="button" onclick="document.getElementById('server-help').showModal()">Start server</button></header><dialog id="server-help"><h2>Start Codefield</h2><p>Open the Codefield folder and double-click <strong>Start Codefield.cmd</strong>. The launcher starts the server and opens your browser.</p><form method="dialog"><button class="run">Got it</button></form></dialog>
+
+<main class="practice-shell">
+  <aside class="problem-list-panel" aria-label="Problem browser"><details id="problem-browser" open><summary class="browser-summary">Browse or search problems</summary>
+    <div class="problem-filters">
+      <section class="path-controls" aria-label="Practice paths and timed session"><strong>Practice path</strong><label for="path-topic">Topic</label><select id="path-topic"><option value="Array">Arrays</option><option value="String">Strings</option><option value="Hash Table">Hash tables</option></select><div class="open-any"><button id="path-next" class="pill-button" type="button">Next in path</button><button id="path-random" class="pill-button" type="button">Random</button></div><p id="path-status" role="status"></p><strong>Timed practice</strong><div class="open-any"><label for="sprint-minutes">Minutes</label><select id="sprint-minutes"><option>15</option><option>25</option><option>45</option></select><button id="sprint-start" class="pill-button" type="button">Start timer</button></div><p id="sprint-status" role="timer">Ready when you are.</p><button id="sprint-next" class="pill-button" type="button" hidden>Next problem →</button></section>
+      <label class="sr-only" for="problem-search">Search problems</label>
+      <input id="problem-search" type="search" placeholder="Search by title or keyword…" autocomplete="off">
+      <div class="difficulty-tabs" role="group" aria-label="Difficulty">
+        <button type="button" data-difficulty="" aria-pressed="true">All</button>
+        <button type="button" data-difficulty="Easy" aria-pressed="false">Easy</button>
+        <button type="button" data-difficulty="Medium" aria-pressed="false">Medium</button>
+        <button type="button" data-difficulty="Hard" aria-pressed="false">Hard</button>
+      </div>
+      <label class="sr-only" for="problem-tag">Topic</label>
+      <select id="problem-tag">
+        <option value="">All topics</option>
+      </select>
+      <div class="open-any">
+        <label class="sr-only" for="problem-open">Open any problem</label>
+        <input id="problem-open" type="text" placeholder="Open any #, slug, or LeetCode URL" autocomplete="off">
+        <button id="problem-open-go" class="pill-button" type="button">Go</button>
+      </div>
+    </div>
+    <div class="problem-list" id="problem-list" aria-live="polite">
+      <div class="practice-empty"><strong>Loading problems…</strong>Reading the local cache first.</div>
+    </div>
+    <div class="list-foot">
+      <span id="problem-count">—</span>
+      <button id="problem-more" class="pill-button" type="button" hidden>Load more</button>
+      <span>Statements belong to LeetCode and are imported for personal study. <a href="https://leetcode.com/problemset/" target="_blank" rel="noopener noreferrer">Full LeetCode catalog ↗</a></span>
+    </div>
+  </details></aside>
+
+  <section class="problem-main" aria-label="Problem workspace">
+    <header class="problem-head">
+      <div>
+        <h1 id="problem-title">Choose a problem</h1>
+        <div class="sub" id="problem-meta"><span class="chip chip--muted">Built-in and imported problems</span></div>
+      </div>
+      <span class="spacer"></span>
+      <button id="briefing-back" class="pill-button" type="button" hidden>← Briefing</button>
+      <a id="problem-link" class="pill-button" target="_blank" rel="noopener noreferrer" hidden>Open on LeetCode ↗</a>
+    </header>
+
+    <div id="source-banner" class="practice-banner" hidden></div>
+
+    <div class="practice-quick"><button id="quick-code" class="run" type="button">Start coding →</button><button id="quick-learn" class="pill-button" type="button">Study guide</button><a class="pill-button" href="./practice.html?mode=problem">Problem workspace</a><a class="pill-button" href="./practice.html">Guided practice</a></div><section class="progress-card"><strong>Your practice</strong><span id="progress-summary">No solutions yet</span><div class="progress-chart" id="progress-chart" aria-label="Solutions by language"></div><div id="progress-legend"></div></section><section class="briefing" id="briefing" hidden aria-label="Before you code">
+      <div class="briefing-head">
+        <p class="eyebrow">BEFORE YOU CODE</p>
+        <h2 id="briefing-title">Preparing the lesson…</h2>
+        <p class="briefing-idea" id="briefing-idea"></p>
+        <div class="briefing-meta" id="briefing-meta"></div>
+      </div>
+      <div class="briefing-card briefing-task">
+        <h3>The task</h3>
+        <p id="briefing-task-text"></p>
+        <div id="briefing-example" class="example-card" hidden></div>
+      </div>
+      <div class="briefing-grid">
+        <div class="briefing-card"><h3>Plan</h3><ol id="briefing-steps"></ol><p class="briefing-complexity" id="briefing-complexity"></p></div>
+        <div class="briefing-card"><h3>Template</h3><pre id="briefing-template"></pre><button id="briefing-copy" class="text-button" type="button">Copy template</button></div>
+      </div>
+      <div class="briefing-card">
+        <h3>Walk through it once</h3>
+        <p id="briefing-worked-prompt"></p>
+        <ol id="briefing-walk"></ol>
+        <p id="briefing-result" class="briefing-result"></p>
+      </div>
+      <div class="briefing-grid">
+        <div class="briefing-card"><h3>Check yourself</h3><div id="briefing-quiz" class="briefing-quiz"></div></div>
+        <div class="briefing-card"><h3>Common traps</h3><ul id="briefing-pitfalls"></ul></div>
+      </div>
+      <details class="briefing-lesson" open>
+        <summary id="briefing-lesson-summary">Full lesson</summary>
+        <div id="briefing-lesson-body" class="briefing-lesson-body"></div>
+      </details>
+      <div class="briefing-actions">
+        <button id="briefing-start" class="run" type="button">Start coding →</button>
+        <button id="briefing-skip" class="text-button" type="button">Skip to the problem</button>
+        <a id="briefing-link" class="pill-button" hidden>Open full lesson ↗</a>
+      </div>
+    </section>
+
+    <div class="problem-grid" id="problem-grid" hidden>
+      <section class="statement" aria-label="Problem statement">
+        <div class="statement-tabs" role="tablist">
+          <button type="button" role="tab" data-tab="description" aria-selected="true">Description</button>
+          <button type="button" role="tab" data-tab="hints" aria-selected="false">Hints</button>
+          <button type="button" role="tab" data-tab="solution" aria-selected="false" hidden>Reference</button>
+        </div>
+        <div class="statement-body" id="statement-body"></div>
+        <div class="statement-note" id="statement-note"></div>
+      </section>
+
+      <section class="workbench" aria-label="Solution editor">
+        <div class="panel-bar">
+          <div class="panel-title"><span class="ruby-dot">◆</span><label for="practice-language" class="sr-only">Language</label><select id="practice-language" aria-label="Solution language"><option value="javascript">JavaScript</option><option value="ruby">Ruby</option><option value="python">Python</option><option value="rust">Rust</option><option value="cpp">C++</option><option value="csharp">C#</option></select><span class="saved" id="draft-status">Draft saved</span></div>
+          <div class="actions">
+            <button id="practice-reset" class="text-button" type="button">Reset code</button>
+          </div>
+        </div>
+        <div class="approach-bar"><label for="approach-name">Approach</label><input id="approach-name" placeholder="e.g. Hash map" maxlength="80"><button id="save-approach" class="pill-button" type="button">Save solution</button><select id="saved-approaches" aria-label="Saved solutions"><option value="">Saved solutions</option></select><button id="open-approach" class="pill-button" type="button">Open</button></div>        <div class="workbench-actions">
+          <button id="test-run" class="run" type="button">▶ &nbsp;Run examples</button>
+          <button id="test-hint" class="text-button" type="button">Hint</button>
+          <button id="test-reveal" class="text-button" type="button" hidden>Show a reference</button>
+          <span class="run-hint" id="test-status">Runs in your browser · Ctrl + Enter</span>
+        </div>
+        <div id="practice-editor"></div>
+        <section class="trace-panel" aria-label="Live execution trace"><div class="trace-head"><div><strong>Step by step</strong><span id="trace-status">Turn on live trace to follow the first example.</span></div><label><input type="checkbox" id="trace-toggle"> Live trace</label></div><pre id="trace-output" aria-live="polite" hidden>Your example’s inputs, observed assignments, and output appear here.</pre></section><div class="hints-panel" id="practice-hints" hidden></div>
+        <div class="reveal-solution" id="reveal-box" hidden></div>
+        <div class="results" id="results" role="log" aria-live="polite">
+          <div class="results-empty">Run the examples to see each case, then read the diff instead of guessing.</div>
+        </div>
+
+        <div id="practice-method-card" class="method-card-host"></div>
+      </section>
+    </div>
+
+    <div class="practice-empty" id="practice-empty">
+      <strong>Pick a problem from the left</strong>
+      Import a set from LeetCode, or start with the built-in ten. Your draft is kept per problem in this browser.
+    </div>
+  </section>
+</main>
+
+<script type="module" src="./practice.js"></script>
+<script type="module" src="./appearance.js"></script></body>
+</html>
+
+
+
+
+
+

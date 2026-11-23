@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Codefield offline</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#edf6f1;background:#0c1017}body{margin:0}header{padding:18px 5%;border-bottom:1px solid #30413b;display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}main{max-width:1100px;margin:auto;padding:32px 5%}h1{margin:0 0 10px;font-size:clamp(28px,4vw,40px)}p{color:#becfc6;line-height:1.5}a{color:#b5efd4}.grid{display:grid;grid-template-columns:2fr 1fr;gap:18px}section{background:#151e24;border:1px solid #34473e;border-radius:12px;padding:20px}textarea{box-sizing:border-box;width:100%;background:#0c1419;color:#ecf9f2;border:1px solid #4b6658;border-radius:8px;padding:12px;font:14px/1.6 ui-monospace,monospace;resize:vertical}#code{min-height:290px}#notes{min-height:120px}button{background:#a8ecd3;color:#10241c;border:0;border-radius:8px;padding:11px 16px;font-weight:700;cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#d0eadd;min-height:50px}label{display:block;font-weight:700;margin-bottom:10px}.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}small{color:#bdcec5}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.code-editor { position: relative; height: 18rem; border: 1px solid #38465d; border-radius: .5rem; background: #111827; overflow: hidden; }
+.code-editor:focus-within { outline: 2px solid #7aa2ff; outline-offset: 2px; }
+.code-input, .code-highlight { box-sizing: border-box; position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 1rem; border: 0; font: 1rem/1.6 ui-monospace, monospace; letter-spacing: normal; tab-size: 2; white-space: pre; overflow: auto; }
+.code-input { display: block; resize: none; color: #e5ecf8; background: transparent; outline: none; }
+.code-highlight { color: #e5ecf8; pointer-events: none; scrollbar-width: none; }
+.code-highlight::-webkit-scrollbar { display: none; }
+.code-editor--highlighted .code-input { color: transparent; caret-color: #fff; }
+.code-input::selection { background: #45649a99; }
+.code-token-keyword { color: #c7a4ff; }
+.code-token-string { color: #a7d9a4; }
+.code-token-number, .code-token-symbol { color: #f4c481; }
+.code-token-comment { color: #91a2b9; }
+.code-token-method-string { color:#75d8c1; }
+.code-token-method-array { color:#8cb9ff; }
+.code-token-method-hash { color:#e9a4e8; }
+.code-token-method-integer { color:#f4c481; }
+.code-token-method-enumerator { color:#d1b4ff; }
+.code-token-method-generic { color:#c6cde0; }
+@media (forced-colors: active) { .code-editor--highlighted .code-input { color: CanvasText; } .code-highlight { display: none; } }
+.code-completions { position:absolute; z-index:3; left:1rem; top:3.2rem; width:min(31rem,calc(100% - 2rem)); max-height:13rem; overflow:auto; padding:.3rem; background:#1b2433; border:1px solid #536177; border-radius:.5rem; box-shadow:0 .7rem 1.5rem #0008; }
+.code-completions[hidden] { display:none; }
+.code-completion { display:flex; align-items:baseline; gap:1rem; padding:.35rem .5rem; border-radius:.25rem; color:#e6eaf4; font: .85rem/1.4 ui-monospace,monospace; cursor:pointer; }
+.code-completion.selected { background:#414069; }
+.code-completion span { flex:none; color:#cbbaff; }
+.code-completion small { color:#afbdd0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font: .75rem/1.4 system-ui,sans-serif; }
+@media (forced-colors: active) { .code-completions { background:Canvas; color:CanvasText; border:1px solid CanvasText; } .code-completion.selected { forced-color-adjust:none; background:Highlight; color:HighlightText; } .code-completion span, .code-completion small { color:inherit; } }
+.code-gutter {position:absolute;inset:0 auto 0 0;z-index:1;box-sizing:border-box;width:3.5rem;height:100%;margin:0;padding:1rem .7rem 1rem 0;overflow:hidden;text-align:right;color:#697992;background:#151c29;border-right:1px solid #283244;font:1rem/1.6 ui-monospace,monospace;white-space:pre;pointer-events:none;}
+.code-editor .code-input,.code-editor .code-highlight {padding-left:4.5rem;}
+.code-editor .code-completions {left:4.5rem;width:min(31rem,calc(100% - 5rem));}
+.code-editor{resize:vertical;min-height:12rem;max-height:70vh}
+/* Suggestions occupy their own row instead of covering the code. */
+.code-completions{position:relative;left:auto;top:auto;width:auto;max-height:12rem;margin:0;border-radius:0;border-width:1px 0 0;box-shadow:none;background:#1b2433;}
+
+</style></head><body>
+<header><strong>⌘ Codefield · Offline</strong><a href="./app/index.html">Open full workspace</a></header>
+<main><h1>Keep learning offline.</h1><p>Write code and save your notes on this device. JavaScript runs offline. Start the full workspace to run other languages.</p>
+<div class="grid"><section><label for="offline-language">Language</label><select id="offline-language" aria-label="Language"><option value="javascript">JavaScript</option><option value="ruby">Ruby</option><option value="python">Python</option><option value="rust">Rust</option><option value="cpp">C++</option><option value="csharp">C#</option></select><label>Code editor</label><div id="code"></div><div class="actions"><button id="run">Run code</button><small>Runs in a temporary browser worker</small></div><h2>Output</h2><pre id="output" role="status">Run your code to see the result.</pre></section>
+<section><h2>Try this</h2><p>Change the example to keep only numbers greater than two, then add them together. What happens when the array is empty?</p><label for="notes">Your notes</label><textarea id="notes"></textarea><p><small>Code and notes save in this browser when storage is available.</small></p><h2>Full workspace</h2><p>Open the Codefield folder and double-click <strong>Start Codefield.cmd</strong> to start the local server and open the app.</p></section></div></main>
+<script>
+/** Preserve the current line's leading whitespace on the next line. */
+function nextLineIndent(value, cursor) {
+  const lineStart = value.lastIndexOf('\n', cursor - 1) + 1;
+  const beforeCursor = value.slice(lineStart, cursor);
+  return (beforeCursor.match(/^[\t ]*/) || [''])[0];
+}
+
+// Parse the shape of a chain only; neither the receiver nor its arguments are run.
+function completionContext(source, caret = source.length, strict = false) {
+  const before = source.slice(0, caret);
+  // Resolve a completed Ruby block back to the expression that opened it.
+  // The remaining chain is parsed by the same completion logic as a single line.
+  if (!strict) {
+    const block = before.match(/(?:^|\n)[ \t]*([^\n]+\.(?:map|collect|each|each_cons|select|filter|reject))[ \t]+do(?:[ \t]*\|[^|\n]*\|)?[ \t]*\n((?:(?![ \t]*(?:end|do)\b)[^\n]*\n)*)[ \t]*end((?:\.[a-zA-Z_]\w*[!?]?(?:\([^()\n]*\))?)*)\.([a-zA-Z_]\w*[!?=]?)?$/);
+    if (block && !/\b(?:do|end)\b/.test(block[2])) {
+      const parent = completionContext(block[1] + block[3] + '.');
+      if (parent) return {...parent, prefix:block[4] || '', blockResult:true, blockMethod:block[1].match(/\.([a-z_]+)$/)[1]};
+    }
+  }
+  const match = before.match(/(?:^|[\s=(,;])((?:String::from\(\s*"(?:\\.|[^"\\])*"\s*\))|(?:vec!\[[^\]\n]*\])|\d+(?:\.\d+)?|[a-zA-Z_$][\w$]*|\[[^\[\]\n]*\]|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')((?:(?:\.[a-zA-Z_]\w*[!?]?(?:\((?:[^()"'\n]|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')*\))?)|(?:\[-?\d+\]))*)\.([a-zA-Z_]\w*[!?=]?)?$/);
+  if (!match || (strict && match.index !== 0)) return null;
+  const chain = Array.from(match[2].matchAll(/\.([a-zA-Z_]\w*[!?]?)(?:\((?:[^()"'\n]|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')*\))?|(?:(\[-?\d+\]))/g), step => step[1] || step[2]);
+  return {receiver:match[1], chain, prefix:match[3] || ''};
+}
+function selectionContext(selection) {
+  const text = selection.trim();
+  if (!text || /\n/.test(text)) return null;
+  // Reject unrelated surrounding code instead of silently inspecting a suffix.
+  return completionContext(text + '.', text.length + 1, true);
+}
+
+
+
+/** A small native-input editor. Language tokenizers are supplied separately. */
+function createEditor(target, options = {}) {
+  const container = typeof target === 'string' ? document.querySelector(target) : target;
+  if (!(container instanceof HTMLElement)) throw new Error('Editor target not found');
+  const root = document.createElement('div');
+  root.className = 'code-editor';
+  const gutter = document.createElement('pre');
+  gutter.className = 'code-gutter';
+  gutter.setAttribute('aria-hidden', 'true');
+  root.append(gutter);
+  const input = document.createElement('textarea');
+  input.className = 'code-input';
+  input.setAttribute('aria-label', options.label || 'Code editor');
+  input.spellcheck = false;
+  input.autocapitalize = 'off';
+  input.autocomplete = 'off';
+  input.wrap = 'off';
+  input.value = options.value ?? '';
+  let display;
+  if (options.tokenize) {
+    root.classList.add('code-editor--highlighted');
+    display = document.createElement('pre');
+    display.className = 'code-highlight';
+    display.setAttribute('aria-hidden', 'true');
+    root.append(display);
+  }
+  root.append(input);
+  container.append(root);
+  let completion, completionItems = [], completionIndex = 0, completionRequest = 0, completionTimer, selectionTimer;
+  if (options.complete) {
+    completion = document.createElement('div');
+    completion.className = 'code-completions';
+    completion.hidden = true;
+    completion.setAttribute('role', 'listbox');
+    completion.setAttribute('aria-label', 'Method suggestions');
+    completion.id = `code-completions-${Math.random().toString(36).slice(2)}`;
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-controls', completion.id);
+    input.setAttribute('aria-expanded', 'false');
+    container.append(completion);
+  }
+  const closeCompletion = () => {
+    completionRequest++;
+    clearTimeout(completionTimer);
+    if (!completion) return;
+    completion.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+  };
+  const paintCompletion = () => {
+    completion.replaceChildren();
+    completionItems.forEach((item, index) => {
+      const row = document.createElement('div');
+      row.className = 'code-completion' + (index === completionIndex ? ' selected' : '');
+      row.id = `${completion.id}-${index}`;
+      row.setAttribute('role', 'option');
+      row.setAttribute('aria-selected', String(index === completionIndex));
+      const name = document.createElement('span'); name.textContent = item.display || item.label;
+      const detail = document.createElement('small'); detail.textContent = item.detail || 'method';
+      row.append(name, detail);
+      row.addEventListener('mousedown', event => { event.preventDefault(); completionIndex = index; acceptCompletion(); });
+      completion.append(row);
+    });
+    input.setAttribute('aria-activedescendant', `${completion.id}-${completionIndex}`);
+    const selected = completion.children[completionIndex];
+    if (selected.offsetTop < completion.scrollTop) completion.scrollTop = selected.offsetTop;
+    else if (selected.offsetTop + selected.offsetHeight > completion.scrollTop + completion.clientHeight) completion.scrollTop = selected.offsetTop + selected.offsetHeight - completion.clientHeight;
+    options.onCompletionHighlight?.(completionItems[completionIndex]);
+  };
+  const acceptCompletion = () => {
+    const item = completionItems[completionIndex];
+    if (!item) return;
+    input.setSelectionRange(item.from, input.selectionStart);
+    const start=item.from;
+    insertText(item.insert || item.label);
+    if(item.cursorOffset !== undefined) input.setSelectionRange(start+item.cursorOffset,start+item.cursorOffset);
+    closeCompletion(); input.focus();
+  };
+  const requestCompletion = () => {
+    if (!completion || input.selectionStart !== input.selectionEnd) { closeCompletion(); return; }
+    const context = completionContext(input.value, input.selectionStart);
+    if (!context) { closeCompletion(); return; }
+    const { receiver, chain, prefix } = context, caret = input.selectionStart;
+    const request = ++completionRequest;
+    clearTimeout(completionTimer);
+    completionTimer = setTimeout(async () => {
+      try {
+        const items = await options.complete(context);
+        if (request !== completionRequest || input.selectionStart !== caret || document.activeElement !== input) return;
+        completionItems = (items || []).filter(item => item.label.startsWith(prefix)).map(item => ({...item, from:caret-prefix.length}));
+        if (!completionItems.length) { closeCompletion(); return; }
+        completionIndex = 0; completion.hidden = false; input.setAttribute('aria-expanded','true'); paintCompletion();
+      } catch { if (request === completionRequest) closeCompletion(); }
+    }, 120);
+  };
+  const render = () => {
+    const lineCount = input.value.split('\n').length;
+    gutter.textContent = Array.from({length: lineCount}, (_, i) => i + 1).join('\n');
+    gutter.scrollTop = input.scrollTop;
+    if (!display) return;
+    const fragment = document.createDocumentFragment();
+    for (const token of options.tokenize(input.value)) {
+      if (token.type && /^[a-z-]+$/.test(token.type)) {
+        const span = document.createElement('span');
+        span.className = `code-token-${token.type}`;
+        span.textContent = token.text;
+        fragment.append(span);
+      } else fragment.append(document.createTextNode(token.text));
+    }
+    // Preserve the final empty line in the visual layer.
+    fragment.append(document.createTextNode('\n'));
+    display.replaceChildren(fragment);
+    display.scrollTop = input.scrollTop;
+    display.scrollLeft = input.scrollLeft;
+  };
+  // insertText uses the browser's editing history when supported, preserving undo.
+  const insertText = text => {
+    if (!document.execCommand('insertText', false, text)) {
+      input.setRangeText(text, input.selectionStart, input.selectionEnd, 'end');
+      input.dispatchEvent(new Event('input', {bubbles:true}));
+    }
+  };
+  const onInput = () => { render(); options.onChange?.(input.value,{caret:input.selectionStart}); requestCompletion(); };
+  const onScroll = () => { gutter.scrollTop=input.scrollTop; if (display) { display.scrollTop = input.scrollTop; display.scrollLeft = input.scrollLeft; } };
+  const notifySelection = (value, start) => {
+    const before = input.value.slice(0, start);
+    const parent = before.endsWith('.') ? completionContext(before) : null;
+    options.onSelection(value, parent);
+  };
+  const onSelect = () => {
+    clearTimeout(selectionTimer);
+    if (!options.onSelection || input.selectionStart === input.selectionEnd) return;
+    const start=input.selectionStart, value = input.value.slice(start, input.selectionEnd);
+    selectionTimer = setTimeout(() => notifySelection(value, start), 180);
+  };
+  const onClick = () => {
+    closeCompletion();
+    if (!options.onSelection || input.selectionStart !== input.selectionEnd) return;
+    const at = input.selectionStart, source = input.value;
+    let start=at, end=at;
+    while(start>0 && /[A-Za-z0-9_$]/.test(source[start-1])) start--;
+    while(end<source.length && /[A-Za-z0-9_$!?]/.test(source[end])) end++;
+    if(end>start) { clearTimeout(selectionTimer); const value=source.slice(start,end); selectionTimer=setTimeout(()=>notifySelection(value,start),180); }
+  };
+  // Opt in: preserve indentation on Enter. Tab remains available for keyboard navigation.
+  const onKeyDown = event => {
+    if (event.isComposing) return;
+    if (completion && !completion.hidden) {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault(); completionIndex = (completionIndex + (event.key === 'ArrowDown' ? 1 : -1) + completionItems.length) % completionItems.length; paintCompletion(); return;
+      }
+      if ((event.key === 'Enter' || event.key === 'Tab') && !event.ctrlKey && !event.metaKey) { event.preventDefault(); acceptCompletion(); return; }
+      if (event.key === 'Escape') { event.preventDefault(); closeCompletion(); return; }
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key === ']') {
+      event.preventDefault(); insertText('  '); return;
+    }
+    if (!event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey && options.autoClose !== false) {
+      const pairs = {'(':')','[':']','{':'}','"':'"',"'":"'"};
+      if (input.selectionStart === input.selectionEnd && /[)\]}"']/.test(event.key) && input.value[input.selectionStart] === event.key) {
+        event.preventDefault(); input.setSelectionRange(input.selectionStart+1,input.selectionStart+1); return;
+      }
+      if (pairs[event.key] && input.selectionStart !== input.selectionEnd) {
+        event.preventDefault(); const selected=input.value.slice(input.selectionStart,input.selectionEnd); insertText(event.key+selected+pairs[event.key]); return;
+      }
+      if (pairs[event.key] && input.selectionStart === input.selectionEnd) {
+        event.preventDefault(); const at=input.selectionStart; insertText(event.key+pairs[event.key]); input.setSelectionRange(at+1,at+1); return;
+      }
+    }
+    if (!options.autoIndent || event.key !== 'Enter' || event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
+    const indent = nextLineIndent(input.value, input.selectionStart);
+    if (!indent) return;
+    event.preventDefault();
+    insertText('\n' + indent);
+  };
+  input.addEventListener('keydown', onKeyDown);
+  input.addEventListener('input', onInput);
+  input.addEventListener('scroll', onScroll);
+  input.addEventListener('blur', closeCompletion);
+  input.addEventListener('click', onClick);
+  input.addEventListener('select', onSelect);
+  render();
+  return {
+    getValue: () => input.value,
+    getSelection: () => input.value.slice(input.selectionStart,input.selectionEnd),
+    getCaret: () => input.selectionStart,
+    setValue(value) { closeCompletion(); input.value = String(value); render(); options.onSetValue?.(input.value); },
+    focus: () => input.focus(),
+    find(text, backwards = false) {
+      if (!text) return false;
+      const source=input.value.toLocaleLowerCase(), query=text.toLocaleLowerCase();
+      let index = backwards ? source.lastIndexOf(query, Math.max(0,input.selectionStart-1)) : source.indexOf(query,input.selectionEnd);
+      if(index<0) index=backwards ? source.lastIndexOf(query) : source.indexOf(query);
+      if(index<0)return false;
+      input.focus(); input.setSelectionRange(index,index+text.length); return true;
+    },
+    insert(text) { input.focus(); insertText(String(text)); },
+    destroy() { closeCompletion(); clearTimeout(selectionTimer); input.removeEventListener('keydown', onKeyDown); input.removeEventListener('input', onInput); input.removeEventListener('scroll', onScroll); input.removeEventListener('blur', closeCompletion); input.removeEventListener('click', onClick); input.removeEventListener('select', onSelect); root.remove(); completion?.remove(); }
+  };
+}
+
+
+
+const initial = "const numbers = [1, 2, 3, 4];\nconst doubled = numbers.map(number => number * 2);\nconsole.log(doubled);";
+const notes=document.querySelector('#notes'), output=document.querySelector('#output'), selector=document.querySelector('#offline-language');
+let lang='javascript', editor;
+try{notes.value=localStorage.getItem('codefield.offline.notes')??''}catch{}
+notes.addEventListener('input',()=>{try{localStorage.setItem('codefield.offline.notes',notes.value)}catch{}});
+function key(){return lang==='javascript'?'codefield.offline.code':'codefield.offline.code.'+lang}
+function mount(){
+  if(editor)editor.destroy();
+  let value=lang==='javascript'?initial:'';
+  try{value=localStorage.getItem(key())??value}catch{}
+  editor=createEditor('#code',{value,label:'Code editor',autoIndent:true,onChange:value=>{try{localStorage.setItem(key(),value)}catch{}}});
+}
+selector.onchange=()=>{lang=selector.value;mount();output.textContent=lang==='javascript'?'Run your code to see the result.':'Open the full workspace to run this language.'};
+mount();
+document.querySelector('#run').onclick=()=>{
+ if(lang!=='javascript'){output.textContent='Start Codefield to run '+selector.selectedOptions[0].textContent+'.';return}
+ const source="self.onmessage=async e=>{const lines=[];console.log=(...v)=>lines.push(v.map(x=>typeof x==='string'?x:JSON.stringify(x)).join(' '));try{let result=await (0,eval)(e.data);if(result!==undefined)lines.push(String(result));self.postMessage(lines.join('\\n')||'Finished without output.')}catch(error){self.postMessage(error.name+': '+error.message)}}";
+ const url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));const worker=new Worker(url);URL.revokeObjectURL(url);output.textContent='Running…';const timer=setTimeout(()=>{worker.terminate();output.textContent='Stopped after 5 seconds.'},5000);worker.onmessage=e=>{clearTimeout(timer);output.textContent=e.data;worker.terminate()};worker.onerror=e=>{clearTimeout(timer);output.textContent=e.message;worker.terminate()};worker.postMessage(editor.getValue());
+};
+
+</script></body></html>

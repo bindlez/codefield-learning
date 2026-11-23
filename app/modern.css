@@ -1,0 +1,276 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+:root{font-family:'DM Sans',system-ui,sans-serif;--bg:#0c1017;--panel:#151c25;--line:#303c48;--text:#f0f4f3;--muted:#b0bec4;--violet:#9ee5ca;--mint:#9ee5ca}
+body{background:#0c1017;color:#f0f4f3;font-family:'DM Sans',system-ui,sans-serif}
+.top{background:rgba(12,16,23,.96);border-bottom:1px solid #303b44;min-height:72px}
+.brand-icon{background:#a8ecd3;color:#12251f}.badge{color:#c3d7d1;background:#1c302b;border-color:#416257}
+.modes{background:#161f26;border-color:#36464a}.modes a{font-size:14px;color:#c1cece;padding:9px 16px}
+.modes a[aria-current=page]{background:#a8ecd3;color:#12251f}
+.coach-toggle,.outline{background:#263d36;border:1px solid #567d6d;color:#e1fff1}.coach-toggle:hover,.outline:hover{background:#345449}
+.run,.start-primary{background:#a8ecd3;color:#10241c;border:0;font-weight:700}
+.workspace{max-width:1500px;padding-top:35px}.rail{display:none}.heading{margin-bottom:28px}.heading h1{font-size:clamp(30px,3vw,42px);letter-spacing:-1.5px}.subtitle{color:#b0bec4}.accent,.eyebrow{color:#a8ecd3}
+.start-panel{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:48px;align-items:center;background:radial-gradient(circle at 92% 4%,#284c42 0,transparent 48%),#182823;border:1px solid #3a5e4f;border-radius:18px;padding:38px 42px;margin-bottom:42px}
+.start-kicker,.start-path>span,.workspace-label span{font-size:11px;font-weight:700;letter-spacing:.14em;color:#a8d7c4}.start-panel h2{font-size:clamp(27px,3vw,40px);letter-spacing:-1.4px;max-width:500px;margin:12px 0}.start-panel p{color:#c3d2cc;font-size:15px;line-height:1.6}.start-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.start-actions a{border-radius:9px;padding:13px 17px;font-size:14px}.start-actions a span{margin-left:14px}.start-secondary{border:1px solid #658477;color:#e2f4e9}
+.start-path{display:grid;gap:4px}.start-path>span{margin-bottom:8px}.start-path a{display:flex;align-items:center;gap:14px;border-top:1px solid #48675a;padding:14px 2px}.start-path b{font:12px 'Space Mono',monospace;color:#a8d7c4}.start-path strong,.start-path small{display:block}.start-path strong{font-size:14px}.start-path small{font-size:12px;color:#b6c9c0;margin-top:4px}.start-path i{margin-left:auto;font-style:normal;color:#bdebd6}
+.workspace-label{display:flex;justify-content:space-between;align-items:end;margin-bottom:18px}.workspace-label h2{font-size:26px;margin:6px 0 0}.workspace-label p{color:#b0bec4;margin:0}.panel,.studio{background:#151c25;border:1px solid #34414b;border-radius:14px}.panel-bar{border-color:#34414b}.code-editor{background:#10161e}.saved,.editor-foot,.output-foot,.key-help{color:#aab9be}.text-button{color:#c3d2d3}.text-button:hover{color:#fff}.reference-head>p:last-of-type,.studio p,.practice p:not(.eyebrow){color:#b9c7c9}.side-column{top:88px;max-height:calc(100vh - 105px)}
+.track-panel,.problem-list-panel{background:#111820;border-color:#34414b}.lesson-main,.problem-main{color:#eef5f1}.lesson-main p,.problem-main p{line-height:1.65}.coach{background:#121c21;border-color:#40594f}.coach-field,.coach-note{color:#c2d4cb}.coach-send{background:#a8ecd3;color:#10241c}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #a8ecd3;outline-offset:3px}
+@media(max-width:900px){.start-panel{grid-template-columns:1fr;gap:28px;padding:28px}.workspace-label{align-items:start;gap:12px;flex-direction:column}}
+@media(max-width:760px){.top{height:auto;min-height:70px}.workspace{padding:25px 16px}.start-panel{padding:24px;margin-bottom:30px}.start-actions a{flex:1;text-align:center}.side-column{position:static;max-height:none}.heading{align-items:start;flex-direction:column}.modes a{padding:8px}}
+.learning-shortcuts{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 25px;padding:15px 18px;background:#182823;border:1px solid #3a5e4f;border-radius:12px}.learning-shortcuts div{margin-right:auto}.learning-shortcuts strong,.learning-shortcuts span{display:block}.learning-shortcuts strong{font-size:15px}.learning-shortcuts span{color:#bfd1c8;font-size:13px;margin-top:4px}.learning-shortcuts a{padding:10px 13px;border:1px solid #597b6c;border-radius:8px;color:#e5f7ed;font-size:13px}.learning-shortcuts a:first-of-type{background:#a8ecd3;color:#12251f;font-weight:700}.code-editor{height:360px}.heading{margin-bottom:20px}.workspace-label{margin-bottom:12px}@media(max-width:760px){.learning-shortcuts div{width:100%}.learning-shortcuts a{flex:1;text-align:center}.code-editor{height:280px}}
+.offline-link{background:none;border:0;color:#d2e9dc;font:inherit;font-size:13px;cursor:pointer;padding:8px}dialog{max-width:420px;background:#182823;color:#eef8f1;border:1px solid #567d6d;border-radius:14px;padding:26px}dialog::backdrop{background:#000b}dialog p{color:#c3d2cc;line-height:1.6}
+/* Workspace layout */
+.editor-area{display:grid;grid-template-columns:190px minmax(0,1fr);gap:14px;align-items:stretch;min-width:0}
+.editor-area .code-map{margin:0;min-width:0}.editor-area .code-map-body{display:grid;grid-template-columns:1fr;gap:18px}.editor-area .code-map-head p{font-size:12px;line-height:1.45}.editor-area .code-map-chips{display:flex;flex-wrap:wrap}
+.main-column>.live-preview{margin:0}.live-preview pre{max-height:105px;overflow:auto}.live-note{display:none}
+.main-column>.output-panel{position:sticky;bottom:0;z-index:20;box-shadow:0 -8px 28px #0009}.output-panel .output{min-height:64px;max-height:150px}.output-panel .panel-bar{min-height:42px}
+.inspector .method-list{display:flex;gap:6px;flex-wrap:wrap;max-height:270px;overflow:auto}.method-pill{font:12px var(--mono);background:#202e35;color:#d5f3e4;border:1px solid #456058;border-radius:6px;padding:6px 9px}.method-pill:hover{background:#38594b}.inspector pre{background:#0e171a;padding:14px;border-radius:8px}
+.practice-quick{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.progress-card{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#15241f;border:1px solid #385b4a;border-radius:12px;padding:14px;margin:12px 0}.progress-card #progress-legend{font-size:12px;color:#b5c9be}.progress-chart{width:38px;height:38px;border-radius:50%}.approach-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px;border-bottom:1px solid #34414b}.approach-bar input,.approach-bar select{min-width:120px;flex:1;padding:7px}.workbench .results{position:sticky;bottom:0;z-index:8;background:#151c25;max-height:230px;overflow:auto;box-shadow:0 -6px 18px #0008}.save-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.save-card{background:#111b20;border:1px solid #354d42;border-radius:12px;padding:16px}.save-row{display:flex;align-items:center;gap:7px;margin-top:10px}.save-row input,.save-row select{min-width:0;flex:1;margin:0}.save-row button,.save-row label{white-space:nowrap}.studio .save-card h3{margin:0}.studio .save-row .file-import{padding:9px}
+@media(max-width:900px){.editor-area{grid-template-columns:1fr}.editor-area .code-map{order:2}.save-grid{grid-template-columns:1fr}.main-column>.output-panel{position:sticky;bottom:0}}
+.main-column>.output-panel{top:72px;bottom:auto;box-shadow:0 8px 22px #0008}.output-panel .output{max-height:100px}.practice-quick{position:sticky;top:65px;z-index:25;background:#101820;padding:8px;border-radius:10px}
+@media(max-width:620px){.main-column>.output-panel{top:120px}.practice-quick{position:static}}
+.code-editor .code-input,.code-editor .code-highlight,.code-editor .code-gutter{font-size:var(--editor-size,14px)}
+/* Keep the workspace legible without nesting the editor into the reference column. */
+@media(min-width:901px){
+ .workspace{max-width:none;padding:24px 24px 60px}
+ .layout{grid-template-columns:minmax(550px,1fr) minmax(260px,320px);align-items:start}
+ .side-column{display:grid;grid-template-columns:1fr;position:sticky;top:80px;max-height:calc(100vh - 90px);overflow:auto}
+ .side-column .reference,.learning-panel{height:auto;max-height:360px}
+ .side-column>.notes,.side-column>.inspector,.side-column>.tip{grid-column:auto}
+ .editor-area{grid-template-columns:minmax(140px,170px) minmax(0,1fr)}
+ .editor-area .editor-panel{min-width:0}
+}
+.main-column>.output-panel{position:static;box-shadow:none}
+.output-panel .output{min-height:70px;max-height:160px}
+.live-preview .panel-bar{min-height:45px;padding:8px 14px}
+.live-preview pre{min-height:30px;max-height:70px;padding:8px 14px}
+.workspace .heading{margin-bottom:14px}
+.learning-shortcuts{margin-bottom:18px;padding:10px 14px}
+.editor-area .code-editor{height:310px}
+.trace-panel{margin:10px 12px;border:1px solid #385548;border-radius:10px;background:#101b19;overflow:hidden}
+.trace-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px}
+.trace-head strong,.trace-head span{display:block}.trace-head span{font-size:12px;color:#a8c0b3;margin-top:3px}
+.trace-head label{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px}
+.trace-panel pre{margin:0;padding:10px 12px;border-top:1px solid #30473c;white-space:pre-wrap;overflow:auto;max-height:190px;color:#cbead8;font:12px/1.6 ui-monospace,monospace}
+.workbench .results{position:static;max-height:220px;overflow:auto;box-shadow:none}
+@media(max-width:900px){.editor-area{grid-template-columns:1fr}.editor-area .code-map{order:2}.side-column{position:static;max-height:none}.editor-area .code-editor{height:280px}}
+.result-strip{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:stretch}
+.result-strip .output-panel,.result-strip .live-preview{position:static;min-width:0;box-shadow:none}
+.result-strip .output{min-height:35px;max-height:65px;padding:8px 14px}
+.result-strip .output-foot{display:none}
+.result-strip .output-panel .panel-bar{min-height:45px}
+.result-strip .live-preview pre{min-height:35px;max-height:65px}
+@media(max-width:620px){.result-strip{grid-template-columns:1fr}.result-strip .output{max-height:95px}}
+@media(min-width:901px){
+ .workspace{padding-top:16px}
+ .workspace .heading{align-items:center;margin-bottom:10px}
+ .workspace .heading h1{font-size:25px;margin-bottom:2px}
+ .workspace .heading .eyebrow,.workspace .heading .subtitle{display:none}
+ .learning-shortcuts{margin-bottom:12px;padding:7px 10px}
+ .learning-shortcuts div{display:none}
+ .learning-shortcuts a{padding:7px 10px}
+ .workspace-label{display:none}
+ .editor-area .code-editor{height:280px}
+}
+@media(min-width:1050px){
+ .practice-shell{grid-template-columns:250px minmax(0,1fr);padding:14px;gap:14px}
+ .problem-grid{grid-template-columns:minmax(260px,.8fr) minmax(370px,1.2fr);gap:12px}
+ .problem-main{min-width:0}
+ .statement{max-height:calc(100vh - 230px);overflow:auto}
+ .practice-quick{position:static;margin:8px 0}
+ .progress-card{padding:7px 12px;margin:8px 0}
+ .workbench .code-editor{height:270px}
+}
+.workbench-actions{border-bottom:1px solid #283346}
+.workbench .results{max-height:110px}
+.trace-panel pre{max-height:110px}
+@media(min-width:1050px){
+ .practice-shell .problem-head h1{font-size:22px;margin-bottom:4px}
+ .practice-shell .problem-head{padding:4px 0}
+ .practice-shell .progress-card{margin:4px 0;padding:5px 10px}
+ .practice-shell .progress-chart{width:28px;height:28px}
+ .practice-shell .practice-quick{margin:4px 0;padding:4px}
+ .practice-shell .workbench .code-editor{height:200px}
+ .trace-panel{margin:6px 10px}
+ .trace-head{padding:6px 10px}
+ .trace-panel pre{max-height:90px;padding:6px 10px}
+ .workbench .results{max-height:90px}
+}
+/* Editor, output, and reference remain visible together on wide screens. */
+@media(min-width:1100px){
+ .layout{grid-template-columns:minmax(0,1fr) minmax(235px,275px);gap:12px}
+ .editor-area{grid-template-columns:minmax(105px,135px) minmax(270px,1fr) minmax(210px,270px);align-items:stretch;gap:10px}
+ .editor-area .output-panel{display:flex;flex-direction:column;min-width:0;height:430px;position:static;box-shadow:none}
+ .editor-area .output-panel .panel-bar{min-height:48px;flex:none}
+ .editor-area .output-panel .output{flex:1;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain}
+ .editor-area .output-foot{flex:none;padding-bottom:10px}
+ .editor-area .code-editor{height:330px}
+}
+@media(max-width:1099px){
+ .editor-area{grid-template-columns:minmax(0,1fr)}
+ .editor-area .code-map{order:2}
+ .editor-area .output-panel{order:3;min-height:200px}
+ .editor-area .output-panel .output{max-height:260px}
+}
+/* User layout: full-width live result, output below the editor, two reference columns. */
+body { zoom: .88; }
+@media(min-width:1100px){
+ .layout{grid-template-columns:minmax(520px,1fr) minmax(430px,36%);gap:14px;align-items:start}
+ .side-column{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:start;position:sticky;top:80px;max-height:calc(100vh - 90px);overflow:auto}
+ .side-column>.notes,.side-column>.inspector,.side-column>.tip{grid-column:1/-1}
+ .side-column .reference,.side-column .learning-panel{height:auto;max-height:calc(100vh - 110px);min-width:0}
+ .editor-area{grid-template-columns:minmax(125px,165px) minmax(0,1fr);gap:12px}
+ .editor-area .code-editor{height:330px}
+ .main-column>.output-panel{position:static;display:flex;flex-direction:column;min-width:0;height:235px;box-shadow:none}
+ .main-column>.output-panel .panel-bar{min-height:48px;flex:none}
+ .main-column>.output-panel .output{flex:1;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain}
+ .main-column>.output-panel .output-foot{flex:none;padding-bottom:10px}
+}
+@media(max-width:1099px){
+ .side-column{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;position:static;max-height:none}
+ .side-column>.notes,.side-column>.inspector,.side-column>.tip{grid-column:1/-1}
+ .main-column>.output-panel .output{min-height:120px;max-height:260px}
+}
+@media(max-width:620px){.side-column{grid-template-columns:1fr}.side-column>.notes,.side-column>.inspector,.side-column>.tip{grid-column:auto}}
+/* Live result stays above; output and two reference columns sit beside the editor. */
+@media(min-width:1100px){
+ .layout{grid-template-columns:minmax(610px,1fr) minmax(390px,32%);gap:12px}
+ .editor-area{grid-template-columns:minmax(100px,125px) minmax(285px,1fr) minmax(165px,210px);gap:10px;align-items:stretch}
+ .editor-area .output-panel{position:static;display:flex;flex-direction:column;min-width:0;height:430px;box-shadow:none}
+ .editor-area .output-panel .panel-bar{min-height:48px;flex:none;padding:0 10px}
+ .editor-area .output-panel .output{flex:1;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain;padding:12px}
+ .editor-area .output-panel .output-foot{flex:none;padding:0 10px 10px}
+ .editor-area .code-editor{height:330px}
+ .side-column{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:1099px){
+ .editor-area{grid-template-columns:minmax(0,1fr)}
+ .editor-area .output-panel{order:3;min-height:200px}
+ .editor-area .output-panel .output{max-height:260px}
+}
+/* Touch layouts for phones and tablets. Code panes scroll independently. */
+@media(max-width:1099px){
+ .layout,.editor-area,.learn-shell,.practice-shell,.problem-grid{min-width:0}
+ .panel,.workbench,.statement,.lesson-main,.problem-main{min-width:0}
+ .side-column{position:static;max-height:none;overflow:visible}
+ .editor-area .output-panel{height:auto;min-height:160px}
+ .editor-area .output{max-height:240px;overflow:auto}
+ .practice-shell{grid-template-columns:minmax(0,1fr);padding:10px;gap:10px}
+ .problem-list-panel{position:static;max-height:300px}
+ .problem-grid{grid-template-columns:minmax(0,1fr)}
+ .statement{max-height:420px}
+ .learning-shortcuts{gap:5px}
+ .studio-tabs{scrollbar-width:thin}
+}
+@media(max-width:760px){
+ body{min-width:0}
+ .top{position:static;height:auto;min-height:0;display:flex;flex-wrap:wrap;padding:8px;gap:5px}
+ .top .brand{margin-right:auto}
+ .top .modes{order:5;flex:1 0 100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));min-width:0;margin:0}
+ .modes a{text-align:center;padding:12px 3px;white-space:nowrap}
+ .top-right{margin-left:0;gap:4px}
+ .top .local{display:none}
+ .top .offline-link{padding:8px;font-size:12px}
+ .workspace{padding:10px 8px 24px}
+ .heading{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+ .heading h1{font-size:25px;margin-bottom:2px}
+ .language-wrap{min-width:0}
+ .learning-shortcuts{display:flex;flex-wrap:wrap;margin:0 0 8px;padding:5px}
+ .learning-shortcuts div{width:100%}
+ .learning-shortcuts a{flex:1 1 auto;text-align:center;padding:10px 8px}
+ .layout,.editor-area{grid-template-columns:minmax(0,1fr);gap:8px}
+ .main-column{gap:8px}
+ .editor-area .code-map{order:2}
+ .editor-area .output-panel{order:3}
+ .editor-panel .panel-bar,.workbench .panel-bar{display:flex;flex-wrap:wrap;gap:5px;padding:7px}
+ .panel-title,.actions{flex-wrap:wrap;min-width:0;gap:6px}
+ .editor-tools{padding:5px;gap:2px}
+ .editor-tools .tool-spacer,.editor-tools .key-help{display:none}
+ .editor-tools .text-button{padding:9px 7px;font-size:13px}
+ .editor-area .code-editor,.workbench .code-editor,.checkpoint-editor .code-editor{height:290px;min-height:200px}
+ .editor-foot{padding:7px;gap:4px}
+ .editor-foot span:last-child{display:none}
+ .side-column{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ .side-column>.notes,.side-column>.inspector,.side-column>.tip{grid-column:auto}
+ .side-column .reference{position:static;width:100%;height:340px;min-height:0}
+ .learning-panel{max-height:380px}
+ .practice-shell,.learn-shell{padding:8px;gap:8px}
+ .practice-quick{position:static;display:flex;gap:5px;padding:4px}
+ .practice-quick>*{flex:1 1 auto;text-align:center}
+ .progress-card{margin:4px 0;padding:8px}
+ .problem-head{gap:6px}
+ .statement-body{padding:12px}
+ .approach-bar{padding:7px;gap:5px}
+ .approach-bar input,.approach-bar select{flex:1 1 140px;min-width:0}
+ .workbench-actions{padding:6px;gap:4px}
+ .workbench .results,.trace-panel pre{max-height:200px}
+ .track-panel{max-height:290px}
+ .track-scroll{max-height:210px}
+ .lesson-main{padding:14px}
+ .lesson-foot{flex-wrap:wrap}
+ .library-grid,.compare-grid,.save-grid{grid-template-columns:minmax(0,1fr)}
+ .save-row{flex-wrap:wrap}
+ .save-row input,.save-row select{flex:1 1 140px}
+ .coach,.notebook,.library{width:100vw;max-width:100vw}
+ input,select,textarea{font-size:16px}
+ .code-editor .code-input,.code-editor .code-highlight,.code-editor .code-gutter{font-size:var(--editor-size,14px)}
+ button,.modes a,.coach-toggle{min-height:44px}
+ .code-map-chips button{min-height:38px}
+}
+@media(max-width:380px){
+ .top .offline-link{font-size:11px;padding:5px}
+ .top .brand{font-size:16px}
+ .top .badge{display:none}
+ .modes a{font-size:11px}
+ .heading h1{font-size:21px}
+ .problem-head .spacer{display:none}
+}
+@media(max-width:760px){.top .modes{grid-template-columns:repeat(5,minmax(0,1fr))}.modes a{font-size:12px}}
+.problem-list-panel details{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.problem-list-panel details[open]{flex:1}
+.browser-summary{display:none}
+@media(max-width:760px){
+ .workspace .heading>div:first-child,.workspace-label,.learning-shortcuts>div{display:none}
+ .workspace .heading{margin:0 0 5px}
+ .workspace .language-wrap{display:flex;align-items:center;gap:8px}
+ .workspace .language-wrap label{margin:0}
+ .learning-shortcuts{margin-bottom:6px}
+ .learning-shortcuts a{padding:7px 5px}
+ .editor-area .output-panel{order:2}
+ .editor-area .code-map{order:3}
+ .browser-summary{display:block;cursor:pointer;padding:12px 14px;font-weight:700;color:#d8efe2}
+ .problem-list-panel:not(:has(details[open])){max-height:none}
+ .problem-list-panel details[open]{max-height:300px}
+ .problem-list-panel .problem-list{max-height:130px;overflow:auto}
+ .problem-list-panel .list-foot{padding:6px 10px}
+ .practice-shell .progress-card{padding:6px;margin:0}
+ .practice-shell .problem-main{gap:6px}
+ .top .modes{min-width:0;overflow:hidden}
+ .top .modes a{min-width:0;padding-inline:2px;font-size:11px}
+}
+/* Use the outer screen space while keeping the controls comfortably spaced. */
+@media(min-width:1100px){
+ .workspace{width:100%;max-width:none;padding:10px 8px 24px}
+ .layout{grid-template-columns:minmax(610px,1fr) minmax(390px,32%);gap:10px}
+ .editor-area{gap:10px}
+ .side-column{padding-top:82px;gap:10px;align-items:start}
+ .side-column .reference,.side-column .learning-panel{height:430px;min-height:0;max-height:430px}
+ .editor-area .output-panel{height:430px}
+}
+@media(min-width:1100px){.side-column{padding-top:var(--editor-offset,90px)}}
+@media(min-width:1100px){
+ .editor-area .output-panel,.side-column .reference,.side-column .learning-panel{height:var(--editor-height,430px);max-height:var(--editor-height,430px)}
+}
+.reference-divider{display:none}
+@media(min-width:1100px){
+ .side-column{grid-template-columns:minmax(0,var(--reference-size,50%)) 8px minmax(0,1fr);column-gap:3px;position:static;overflow:visible;max-height:none}
+ .side-column .reference{grid-column:1;grid-row:1}
+ .side-column .learning-panel{grid-column:3;grid-row:1}
+ .side-column>.notes,.side-column>.inspector,.side-column>.tip{grid-column:1/-1}
+ .side-column .reference,.side-column .learning-panel{resize:vertical;overflow:auto;min-height:260px;max-height:none}
+ .reference-divider{display:block;grid-column:2;grid-row:1;align-self:stretch;min-height:80px;cursor:col-resize;touch-action:none;border-radius:6px;background:transparent}
+ .reference-divider:hover,.reference-divider:focus-visible{background:#638d78;outline:none}
+}
+@media(min-width:1100px){
+ .reference-divider{background:linear-gradient(90deg,transparent 3px,#466355 3px,#466355 5px,transparent 5px)}
+ .reference-divider:hover,.reference-divider:focus-visible{background:#638d78}
+}

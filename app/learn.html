@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Guided JavaScript lessons with runnable examples, checkpoints and an AI coach that runs locally.">
+  <title>Learn — Codefield</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../src/editor.css">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./shell.css">
+<link rel="stylesheet" href="./modern.css"></head>
+<body>
+<header class="top">
+  <a class="brand" href="./index.html" aria-label="Codefield home"><span class="brand-icon" aria-hidden="true">⌘</span> codefield <span class="badge">ALPHA 0.4.0</span></a>
+  <nav class="modes" aria-label="Workspace modes">
+    <a href="./index.html">Playground</a>
+    <a href="./beginner.html">Beginner</a><a href="./learn.html" aria-current="page">Learn</a>
+    <a href="./practice.html">Practice</a><a href="./practice.html?mode=problem">Problems</a>
+  </nav>
+  <div class="top-right">
+    <span class="local">● &nbsp;Progress saves here</span>
+    <button id="library-toggle" class="coach-toggle library-toggle" type="button">▤ Library</button>
+    <button id="coach-toggle" class="coach-toggle" type="button"><span class="dot" aria-hidden="true"></span> AI coach</button>
+  </div>
+<a class="offline-link" href="./offline.html">Offline playground</a><button class="offline-link" type="button" onclick="document.getElementById('server-help').showModal()">Start server</button></header><dialog id="server-help"><h2>Start Codefield</h2><p>Open the Codefield folder and double-click <strong>Start Codefield.cmd</strong>. The launcher starts the server and opens your browser.</p><form method="dialog"><button class="run">Got it</button></form></dialog>
+
+<main class="learn-shell">
+  <aside class="track-panel" aria-label="Curriculum">
+    <div class="track-head">
+      <h2>Curriculum</h2>
+      <p id="track-summary">Loading lessons…</p>
+      <div class="progress-meter" role="progressbar" aria-label="Lesson progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="learn-meter"><i id="learn-progress" style="width:0%"></i></div>
+      <p id="learn-progress-label" style="margin-top:8px;font-size:10.5px;color:#7f8da2"></p>
+    </div>
+    <div class="track-scroll" id="track-list"></div>
+  </aside>
+
+  <section class="lesson-main" id="lesson-main" aria-live="polite">
+    <div class="practice-empty"><strong>Pick a lesson</strong>Choose a topic on the left to begin.</div>
+  </section>
+</main>
+
+<script type="module" src="./learn.js"></script>
+<script type="module" src="./appearance.js"></script></body>
+</html>
+
+
+
+
+
+

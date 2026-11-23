@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {parseVoiceCommand,resolveVoiceSelection} from '../src/voice-commands.js';
+
+test('voice selection handles identifiers and previous words without an LLM', () => {
+  const code = 'word.chars.tally';
+  assert.deepEqual(resolveVoiceSelection(code, code.length, parseVoiceCommand('highlight tally')), {start:11,end:16});
+  assert.deepEqual(resolveVoiceSelection(code, code.length, parseVoiceCommand('highlight back 3')), {start:0,end:16});
+});
+test('ambiguous or impossible commands do not select code', () => {
+  assert.equal(resolveVoiceSelection('x + x', 5, parseVoiceCommand('highlight x')), null);
+  assert.equal(resolveVoiceSelection('x', 1, parseVoiceCommand('highlight back 3')), null);
+  assert.equal(parseVoiceCommand('delete everything').type, 'unknown');
+});

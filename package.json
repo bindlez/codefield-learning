@@ -1,0 +1,17 @@
+{
+  "name": "codefield",
+  "version": "0.4.0-alpha",
+  "private": true,
+  "type": "module",
+  "description": "Local-first coding workspace with guided lessons, LeetCode practice and an AI coach.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js"
+  }
+}
+
+
+
+
+
+
