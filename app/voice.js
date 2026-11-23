@@ -4,15 +4,16 @@ import {parseVoiceCommand, resolveVoiceSelection} from '../src/voice-commands.js
 const $ = selector => document.querySelector(selector);
 const language = $('#language'), status = $('#status'), output = $('#output');
 languageOptions(language, localStorage.getItem('codefield.voice.language') || 'javascript');
-let editor, recognition, listening = false, controller, pendingAction = null;
+let editor, recognition, listening = false, controller, pendingAction = null, pendingSnapshot = null;
 const remoteConsent = new Set();
 const confirmBox=document.createElement('div'); confirmBox.hidden=true;
 confirmBox.innerHTML='<button type="button" id="voice-confirm">Confirm</button> <button type="button" id="voice-cancel">Cancel</button>';
 status.after(confirmBox);
-function askConfirmation(action,message) { pendingAction=action; confirmBox.hidden=false; status.textContent=message; }
-function cancelConfirmation() { pendingAction=null; confirmBox.hidden=true; status.textContent='Cancelled.'; }
+function askConfirmation(action,message) { pendingAction=action; pendingSnapshot={language:language.value,code:editor.getValue(),caret:editor.getCaret(),selection:editor.getSelection()}; confirmBox.hidden=false; status.textContent=message; }
+function cancelConfirmation() { pendingAction=null; pendingSnapshot=null; confirmBox.hidden=true; status.textContent='Cancelled.'; }
 function confirmAction() {
-  const action=pendingAction; pendingAction=null; confirmBox.hidden=true;
+  const action=pendingAction, snapshot=pendingSnapshot; pendingAction=null; pendingSnapshot=null; confirmBox.hidden=true;
+  if(!snapshot || snapshot.language!==language.value || snapshot.code!==editor.getValue() || (action==='delete' && (snapshot.caret!==editor.getCaret() || snapshot.selection!==editor.getSelection()))) { status.textContent='The code or selection changed; please request the action again.'; return; }
   if(action==='delete') { editor.insert(''); status.textContent='Selection deleted. Say undo to restore it.'; }
   if(action==='run-remote') { remoteConsent.add(language.value); run(); }
 }
