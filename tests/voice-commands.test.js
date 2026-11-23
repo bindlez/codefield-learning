@@ -12,3 +12,9 @@ test('ambiguous or impossible commands do not select code', () => {
   assert.equal(resolveVoiceSelection('x', 1, parseVoiceCommand('highlight back 3')), null);
   assert.equal(parseVoiceCommand('delete everything').type, 'unknown');
 });
+
+test('recognizes speech-friendly counts and method context', () => {
+  assert.deepEqual(parseVoiceCommand('highlight back three.'), {type:'highlight-back',count:3});
+  assert.deepEqual(parseVoiceCommand('dot tally'), {type:'insert-method',name:'tally'});
+  assert.deepEqual(parseVoiceCommand('highlight tally.'), {type:'highlight-name',name:'tally'});
+});

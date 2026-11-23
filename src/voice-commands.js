@@ -1,10 +1,13 @@
 // Interpret editing commands locally. Speech recognition is intentionally separate.
 export function parseVoiceCommand(transcript) {
-  const text = String(transcript).trim();
-  const back = /^highlight back (\d+)$/i.exec(text);
-  if (back) return {type:'highlight-back', count:Number(back[1])};
+  const text = String(transcript).trim().replace(/[.!?]+$/, '');
+  const back = /^highlight back (\d+|one|two|three|four|five|six|seven|eight|nine|ten)$/i.exec(text);
+  const numbers = {one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10};
+  if (back) return {type:'highlight-back', count:numbers[back[1].toLowerCase()] || Number(back[1])};
   const named = /^highlight\s+([\w$]+)$/i.exec(text);
   if (named) return {type:'highlight-name', name:named[1]};
+  const method = /^dot\s+([a-z_$][\w$]*)$/i.exec(text);
+  if (method) return {type:'insert-method', name:method[1]};
   return {type:'unknown'};
 }
 
