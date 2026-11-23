@@ -129,10 +129,11 @@
         <div class="approach-bar"><label for="approach-name">Approach</label><input id="approach-name" placeholder="e.g. Hash map" maxlength="80"><button id="save-approach" class="pill-button" type="button">Save solution</button><select id="saved-approaches" aria-label="Saved solutions"><option value="">Saved solutions</option></select><button id="open-approach" class="pill-button" type="button">Open</button></div>        <div class="workbench-actions">
           <button id="test-run" class="run" type="button">▶ &nbsp;Run examples</button>
           <button id="test-hint" class="text-button" type="button">Hint</button>
+          <button id="variant-start" class="pill-button" type="button" hidden>Try a harder version</button><button id="variant-exit" class="text-button" type="button" hidden>Return to original</button>
           <button id="test-reveal" class="text-button" type="button" hidden>Show a reference</button>
           <span class="run-hint" id="test-status">Runs in your browser · Ctrl + Enter</span>
         </div>
-        <div id="practice-editor"></div>
+        <p id="variant-description" role="status" hidden></p><div id="practice-editor"></div>
         <section class="trace-panel" aria-label="Live execution trace"><div class="trace-head"><div><strong>Step by step</strong><span id="trace-status">Turn on live trace to follow the first example.</span></div><label><input type="checkbox" id="trace-toggle"> Live trace</label></div><pre id="trace-output" aria-live="polite" hidden>Your example’s inputs, observed assignments, and output appear here.</pre></section><div class="hints-panel" id="practice-hints" hidden></div>
         <div class="reveal-solution" id="reveal-box" hidden></div>
         <div class="results" id="results" role="log" aria-live="polite">

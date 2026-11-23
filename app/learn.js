@@ -10,6 +10,7 @@ import { createMethodCard } from './method-card.js';
 import { createNotebook } from './notebook.js';
 import { runOnce } from './run-js.js';
 import { initLibrary } from './library.js';
+import {sharedCompletion} from './shared-completion.js';
 
 const progressKey = 'codefield.learn.v1';
 const $ = selector => document.querySelector(selector);
@@ -383,11 +384,7 @@ function checkpointNode(lesson) {
       label: `${lesson.title} checkpoint editor`,
       tokenize: tokenizers[lessonLanguage],
       autoIndent: true,
-      complete: lessonLanguage === 'javascript' ? context => javascriptCompletion({
-        ...context,
-        source: checkpointEditor ? checkpointEditor.getValue() : '',
-        caret: checkpointEditor ? checkpointEditor.getCaret() : 0
-      }) : undefined,
+      complete: context => sharedCompletion(lessonLanguage,checkpointEditor?.getValue() || '',checkpointEditor?.getCaret() || 0,context),
       onSelection: (value, parent) => {
         if (!checkpointEditor || lessonLanguage !== 'javascript') return;
         const inferred = parent

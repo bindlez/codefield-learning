@@ -7,6 +7,8 @@ import {tokenizeCpp} from '../src/languages/cpp.js';
 import {runProgram} from './languages.js';
 import {practiceData, catalogIndex} from './practice-data.js';
 import {problems as pathProblems} from './problems.js';
+import {variants} from './variants.js';
+import {sharedCompletion} from './shared-completion.js';
 import { createEditor } from '../src/editor.js';
 import { tokenizeJavaScript } from '../src/languages/javascript.js';
 import { createJudgeRunner, testsFromProblem } from './judge.js';
@@ -52,7 +54,8 @@ const state = {
   lastReport: '',
   hintIndex: 0,
   runToken: 0,
-  tab: 'description'
+  tab: 'description',
+  variant: false
 };
 
 let editor = null;
@@ -73,18 +76,22 @@ function rememberProblem(stage) {
 const languageSelect = $('#practice-language');
 const browserPanel = $('#problem-browser');
 const phoneMedia = matchMedia('(max-width: 760px)');
-let sprintDeadline = 0, sprintTimer = 0;
+let sprintDeadline = 0, sprintTimer = 0, sprintSlug = '';
+const sprintKey = 'codefield.practice.sprint.v1';
+function saveSprint() {
+  try { if (sprintDeadline) localStorage.setItem(sprintKey,JSON.stringify({deadline:sprintDeadline,slug:sprintSlug,minutes:$('#sprint-minutes').value})); else localStorage.removeItem(sprintKey); } catch {}
+}
 function pathChoices() {
   return pathProblems.filter(item => item.tags.includes($('#path-topic').value));
 }
-function choosePath(random = false) {
+async function choosePath(random = false) {
   const candidates = pathChoices().filter(item => item.id !== state.selected);
   if (!candidates.length) { $('#path-status').textContent = 'No other problems in this path yet.'; return; }
   const unseen = candidates.filter(item => !store.attempts[item.id]?.passed);
   const pool = unseen.length ? unseen : candidates;
   const item = pool[random ? Math.floor(Math.random()*pool.length) : 0];
   $('#path-status').textContent = `Opening ${item.title} · ${unseen.length} unsolved in this path`;
-  openProblem(item.id);
+  await openProblem(item.id);
 }
 $('#path-next').onclick = () => choosePath();
 $('#path-random').onclick = () => choosePath(true);
@@ -92,25 +99,59 @@ function updateSprint() {
   if (!sprintDeadline) return;
   const remaining = Math.max(0, Math.ceil((sprintDeadline-Date.now())/1000));
   $('#sprint-status').textContent = remaining ? `${Math.floor(remaining/60)}:${String(remaining%60).padStart(2,'0')} remaining` : 'Time is up. Review your solution or try the next problem.';
-  if (!remaining) { clearInterval(sprintTimer); sprintDeadline=0; $('#sprint-next').hidden=false; }
+  if (!remaining) { clearInterval(sprintTimer); sprintDeadline=0; saveSprint(); $('#sprint-next').hidden=false; }
 }
 $('#sprint-start').onclick = () => {
+  if (!state.problem) { $('#sprint-status').textContent='Open a problem first.'; return; }
+  sprintSlug=state.selected;
   sprintDeadline = Date.now() + Number($('#sprint-minutes').value)*60000;
   clearInterval(sprintTimer); sprintTimer=setInterval(updateSprint,1000); updateSprint();
+  saveSprint();
   $('#sprint-next').hidden=true;
 };
-$('#sprint-next').onclick = () => { choosePath(); $('#sprint-start').click(); };
+$('#sprint-next').onclick = async () => { await choosePath(); if(state.problem) $('#sprint-start').click(); };
 function sprintSolved() {
   if (!sprintDeadline) return;
   clearInterval(sprintTimer); sprintDeadline=0;
+  saveSprint();
   $('#sprint-status').textContent='Examples passed! Continue with the next problem.';
   $('#sprint-next').hidden=false;
 }
+try {
+  const saved=JSON.parse(localStorage.getItem(sprintKey) || 'null');
+  if(saved?.deadline > Date.now() && saved.slug) {
+    sprintDeadline=saved.deadline; sprintSlug=saved.slug; $('#sprint-minutes').value=saved.minutes;
+    sprintTimer=setInterval(updateSprint,1000); updateSprint();
+    window.__initialSlug=saved.slug;
+  } else if(saved) localStorage.removeItem(sprintKey);
+} catch {}
 browserPanel.open = !phoneMedia.matches;
 phoneMedia.addEventListener('change', event => { browserPanel.open = !event.matches; });
 const tokenizers = {javascript:tokenizeJavaScript, ruby:tokenizeRuby, python:tokenizePython, rust:tokenizeRust, cpp:tokenizeCpp, csharp:tokenizeCpp};
 const snippetKeys = {javascript:'javascript', ruby:'ruby', python:'python3', rust:'rust', cpp:'cpp', csharp:'csharp'};
-const draftKey = () => languageSelect.value === 'javascript' ? state.problem.slug : state.problem.slug + ':' + languageSelect.value;
+const draftKey = () => (languageSelect.value === 'javascript' ? state.problem.slug : state.problem.slug + ':' + languageSelect.value) + (state.variant ? ':harder' : '');
+function renderVariantControl() {
+  const variant = state.problem && variants[state.problem.slug];
+  $('#variant-start').hidden = !variant || state.variant || !store.attempts[state.problem.slug]?.passed;
+  $('#variant-exit').hidden = !state.variant;
+  $('#variant-description').hidden = !state.variant;
+  if (state.variant) $('#variant-description').textContent = variant.title + ': ' + variant.description;
+}
+function switchVariant(enabled) {
+  if (!state.problem || (enabled && !variants[state.problem.slug])) return;
+  cancelTrace(); state.runToken++; $('#test-run').disabled=false;
+  store.drafts[draftKey()] = editor.getValue(); saveStore();
+  state.variant = enabled;
+  state.plan = testsFromProblem(state.problem);
+  if (enabled) state.plan.tests = variants[state.problem.slug].tests.map(test=>({...test,known:true}));
+  state.lastVerifiedCode = '';
+  mountEditor(); renderVariantControl(); refreshApproaches();
+  $('#results').textContent = enabled ? 'Run the harder version’s test cases.' : 'Run examples to check the original problem.';
+  $('#test-status').textContent = enabled ? 'Harder version · separate draft and progress' : 'Original problem';
+  queueTrace();
+}
+$('#variant-start').onclick=()=>switchVariant(true);
+$('#variant-exit').onclick=()=>switchVariant(false);
 function starter(problem) {
   return (languageSelect.value === 'javascript' ? problem.starter : '') || problem.snippets?.[snippetKeys[languageSelect.value]] || '';
 }
@@ -132,7 +173,7 @@ function renderProgress() {
 function refreshApproaches() {
   const select=$('#saved-approaches');
   select.replaceChildren(new Option('Saved solutions',''));
-  for(const item of store.solutions.filter(item=>item.slug===state.problem?.slug && item.language===languageSelect.value))
+  for(const item of store.solutions.filter(item=>item.slug===state.problem?.slug && item.language===languageSelect.value && !!item.variant===state.variant))
     select.add(new Option(item.name + (item.verified ? ' ✓' : ''),item.id));
 }
 
@@ -272,7 +313,10 @@ function renderBanner() {
 
 async function openProblem(slug, preloaded = null) {
   if (!slug || (slug === state.selected && state.problem)) return;
+  if (sprintDeadline && sprintSlug !== slug) { clearInterval(sprintTimer); sprintDeadline=0; saveSprint(); $('#sprint-status').textContent='Timer stopped after changing problems.'; }
   cancelTrace();
+  state.variant = false;
+  $('#variant-start').hidden = true; $('#variant-exit').hidden = true; $('#variant-description').hidden = true;
   state.selected = slug;
   state.problem = null;
   state.plan = null;
@@ -320,6 +364,7 @@ async function openProblem(slug, preloaded = null) {
       state.plan = testsFromProblem(preloaded);
       renderProblem();
       mountEditor();
+      renderVariantControl();
       renderBriefing(preloaded);
       showStage((new URLSearchParams(location.search).get('mode') === 'problem' || (window.__resumeSlug === state.problem.slug && window.__resumeStage === 'code')) ? 'code' : 'learn');
       refreshApproaches();
@@ -332,6 +377,7 @@ async function openProblem(slug, preloaded = null) {
     state.plan = testsFromProblem(data);
     renderProblem();
     mountEditor();
+    renderVariantControl();
     renderBriefing(data);
     showStage(new URLSearchParams(location.search).get('mode') === 'problem' ? 'code' : 'learn');
     refreshApproaches();
@@ -672,12 +718,7 @@ function mountEditor() {
     label: `${problem.title} solution editor`,
     tokenize: tokenizers[languageSelect.value],
     autoIndent: true,
-    complete: languageSelect.value === 'javascript' ? context => javascriptCompletion({
-      ...context,
-      source: editor ? editor.getValue() : '',
-      caret: editor ? editor.getCaret() : 0,
-      bindings
-    }) : undefined,
+    complete: context => sharedCompletion(languageSelect.value,editor?.getValue() || '',editor?.getCaret() || 0,context,bindings),
     onSelection: (value, parent) => {
       if (!editor || languageSelect.value !== 'javascript') return;
       const inferred = parent
@@ -707,7 +748,7 @@ function renderResults(report, results) {
   const known = results.filter(row => row.passed !== null).length;
   const passed = results.filter(row => row.passed === true).length;
   const summary = document.createElement('strong');
-  summary.textContent = results.length ? `${passed} / ${known || results.length} ${known ? 'published examples pass' : 'examples ran'}` : 'No tests';
+  summary.textContent = results.length ? `${passed} / ${known || results.length} ${known ? (state.variant ? 'variant cases pass' : 'published examples pass') : 'examples ran'}` : 'No tests';
   head.append(summary);
   if (results.length > known) {
     const note = document.createElement('span');
@@ -747,7 +788,7 @@ function renderResults(report, results) {
   }
   const footnote = document.createElement('div');
   footnote.className = 'results-empty';
-  footnote.textContent = 'These are the published examples, not LeetCode’s hidden judge. Passing here is evidence, not a verdict.';
+  footnote.textContent = state.variant ? 'These are Codefield variant cases, not LeetCode submissions or a complexity check.' : 'These are the published examples, not LeetCode’s hidden judge. Passing here is evidence, not a verdict.';
   container.append(footnote);
 }
 
@@ -769,7 +810,7 @@ async function runTests() {
       if (checked) {
         const passed = !checked.error && checked.results.length > 0 && checked.results.every(row => row.passed === true);
         renderResults({ok:passed,loadError:checked.error}, checked.results);
-        if (passed) { state.lastVerifiedCode = code; store.attempts[problem.slug] = {...store.attempts[problem.slug], passed:true, at:new Date().toISOString()}; saveStore(); sprintSolved(); }
+        if (passed) { state.lastVerifiedCode = code; const key=problem.slug+(state.variant?':harder':''); store.attempts[key] = {...store.attempts[key], passed:true, at:new Date().toISOString()}; saveStore(); renderVariantControl(); if(!state.variant) sprintSolved(); }
         $('#test-status').textContent = passed ? 'All examples passed ✓' : checked.error ? 'Execution failed' : 'Review your results';
       } else {
         const result = await runProgram(language, code);
@@ -816,13 +857,15 @@ async function runTests() {
   if (report.ok && results.length && results.every(row => row.passed === true)) {
     state.lastVerifiedCode=editor.getValue();
     $('#test-status').textContent += ' · All examples passed ✓';
-    const attempt = store.attempts[problem.slug] || { runs: 0 };
+    const key = problem.slug + (state.variant ? ':harder' : '');
+    const attempt = store.attempts[key] || { runs: 0 };
     attempt.runs += 1;
     attempt.passed = true;
     attempt.at = new Date().toISOString();
-    store.attempts[problem.slug] = attempt;
+    store.attempts[key] = attempt;
     saveStore();
-    sprintSolved();
+    renderVariantControl();
+    if(!state.variant) sprintSolved();
   }
   if (!report.ok && problem.solution) $('#test-reveal').hidden = false;
 }
@@ -970,11 +1013,11 @@ languageSelect.onchange = async () => {
 };
 $('#save-approach').onclick = () => {
   if(!state.problem || !editor) return;
-  const name=$('#approach-name').value.trim() || 'Approach ' + (store.solutions.filter(x=>x.slug===state.problem.slug && x.language===languageSelect.value).length+1);
+  const name=$('#approach-name').value.trim() || 'Approach ' + (store.solutions.filter(x=>x.slug===state.problem.slug && x.language===languageSelect.value && !!x.variant===state.variant).length+1);
   const code=editor.getValue();
-  const duplicate=store.solutions.find(x=>x.slug===state.problem.slug && x.language===languageSelect.value && x.code===code);
+  const duplicate=store.solutions.find(x=>x.slug===state.problem.slug && x.language===languageSelect.value && !!x.variant===state.variant && x.code===code);
   if(duplicate){toast('This exact solution is already saved as '+duplicate.name);return}
-  const item={id:crypto.randomUUID(),slug:state.problem.slug,language:languageSelect.value,name,code,verified:!!code && state.lastVerifiedCode===code,at:new Date().toISOString()};
+  const item={id:crypto.randomUUID(),slug:state.problem.slug,language:languageSelect.value,variant:state.variant,name,code,verified:!!code && state.lastVerifiedCode===code,at:new Date().toISOString()};
   store.solutions.unshift(item);
   try{localStorage.setItem(storageKey,JSON.stringify(store))}catch{store.solutions.shift();toast('Could not save. Browser storage may be full.');return}
   refreshApproaches();renderProgress();$('#saved-approaches').value=item.id;
