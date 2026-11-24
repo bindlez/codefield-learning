@@ -6,10 +6,13 @@ import {tokenizeRust} from '../src/languages/rust.js';
 import {tokenizeCpp} from '../src/languages/cpp.js';
 import {runProgram} from './languages.js';
 import {practiceData, catalogIndex} from './practice-data.js';
-import {problems as pathProblems} from './problems.js';
+import {orderedPath,roadmaps} from './roadmaps.js';
 import {variants} from './variants.js';
+import {compiledScript} from './compiled-practice.js';
+import {compiledStarter} from './compiled-starter.js';
+const traceConsent = new Set();
 import {sharedCompletion} from './shared-completion.js';
-import { createEditor } from '../src/editor.js';
+import { createEditor } from './workspace-editor.js';
 import { tokenizeJavaScript } from '../src/languages/javascript.js';
 import { createJudgeRunner, testsFromProblem } from './judge.js';
 import { sanitizeHtml, textOf } from './sanitize.js';
@@ -81,17 +84,26 @@ const sprintKey = 'codefield.practice.sprint.v1';
 function saveSprint() {
   try { if (sprintDeadline) localStorage.setItem(sprintKey,JSON.stringify({deadline:sprintDeadline,slug:sprintSlug,minutes:$('#sprint-minutes').value})); else localStorage.removeItem(sprintKey); } catch {}
 }
-function pathChoices() {
-  return pathProblems.filter(item => item.tags.includes($('#path-topic').value));
+const topicSelect=$('#path-topic');
+topicSelect.replaceChildren(...Object.keys(roadmaps).map(topic=>new Option(topic,topic)));
+try { topicSelect.value=localStorage.getItem('codefield.path') || 'Array'; } catch {}
+function showRoadmap() {
+  const topic=topicSelect.value || 'Array';
+  const steps=roadmaps[topic];
+  $('#path-status').textContent=steps.map(slug=>(store.attempts[slug]?.passed?'✓ ':'')+slug.replaceAll('-',' ')).join(' → ');
 }
+topicSelect.onchange=()=>{try {localStorage.setItem('codefield.path',topicSelect.value);}catch{} showRoadmap();};
+showRoadmap();
 async function choosePath(random = false) {
-  const candidates = pathChoices().filter(item => item.id !== state.selected);
+  let catalog;
+  try { catalog=await catalogIndex(); } catch { $('#path-status').textContent='The bundled catalog could not be opened.'; return; }
+  const candidates = orderedPath(topicSelect.value,catalog).filter(item => item.slug !== state.selected);
   if (!candidates.length) { $('#path-status').textContent = 'No other problems in this path yet.'; return; }
-  const unseen = candidates.filter(item => !store.attempts[item.id]?.passed);
+  const unseen = candidates.filter(item => !store.attempts[item.slug]?.passed);
   const pool = unseen.length ? unseen : candidates;
   const item = pool[random ? Math.floor(Math.random()*pool.length) : 0];
   $('#path-status').textContent = `Opening ${item.title} · ${unseen.length} unsolved in this path`;
-  await openProblem(item.id);
+  await openProblem(item.slug);
 }
 $('#path-next').onclick = () => choosePath();
 $('#path-random').onclick = () => choosePath(true);
@@ -127,8 +139,8 @@ try {
 } catch {}
 browserPanel.open = !phoneMedia.matches;
 phoneMedia.addEventListener('change', event => { browserPanel.open = !event.matches; });
-const tokenizers = {javascript:tokenizeJavaScript, ruby:tokenizeRuby, python:tokenizePython, rust:tokenizeRust, cpp:tokenizeCpp, csharp:tokenizeCpp};
-const snippetKeys = {javascript:'javascript', ruby:'ruby', python:'python3', rust:'rust', cpp:'cpp', csharp:'csharp'};
+const tokenizers = {javascript:tokenizeJavaScript, ruby:tokenizeRuby, python:tokenizePython, rust:tokenizeRust, cpp:tokenizeCpp, csharp:tokenizeCpp,java:tokenizeCpp,crystal:tokenizeRuby};
+const snippetKeys = {javascript:'javascript', ruby:'ruby', python:'python3', rust:'rust', cpp:'cpp', csharp:'csharp',java:'java',crystal:'crystal'};
 const draftKey = () => (languageSelect.value === 'javascript' ? state.problem.slug : state.problem.slug + ':' + languageSelect.value) + (state.variant ? ':harder' : '');
 function renderVariantControl() {
   const variant = state.problem && variants[state.problem.slug];
@@ -153,7 +165,7 @@ function switchVariant(enabled) {
 $('#variant-start').onclick=()=>switchVariant(true);
 $('#variant-exit').onclick=()=>switchVariant(false);
 function starter(problem) {
-  return (languageSelect.value === 'javascript' ? problem.starter : '') || problem.snippets?.[snippetKeys[languageSelect.value]] || '';
+  return (languageSelect.value === 'javascript' ? problem.starter : '') || problem.snippets?.[snippetKeys[languageSelect.value]] || compiledStarter(languageSelect.value,state.plan);
 }
 function renderProgress() {
   const solutions = store.solutions;
@@ -713,7 +725,7 @@ function mountEditor() {
   methodCard = createMethodCard($('#practice-method-card'));
   const problem = state.problem;
   const bindings = Object.fromEntries((state.plan?.params || []).map(param => [param.name, typeForParam(param.type)]));
-  editor = createEditor('#practice-editor', {
+  editor = createEditor('#practice-editor', {language:languageSelect.value,modelOpen:true,
     value: store.drafts[draftKey()] ?? starter(problem),
     label: `${problem.title} solution editor`,
     tokenize: tokenizers[languageSelect.value],
@@ -932,10 +944,17 @@ function queueTrace() {
   const plan = state.plan, code = editor.getValue(), test = plan?.tests?.[0];
   const language = languageSelect.value;
   if (language !== 'javascript') {
-    const source = ['python','ruby'].includes(language) && plan && test ? buildScript(language, instrumentInterpreted(language,code), {...plan,tests:[test]}) : null;
+    const remote = ['rust','cpp','csharp','java','crystal'].includes(language);
+    if (remote && !traceConsent.has(language)) {
+      $('#trace-toggle').checked=false; output.hidden=true;
+      status.textContent='Enable Live Trace to send this example to '+(language==='rust'?'Rust Playground.':'Compiler Explorer.');
+      return;
+    }
+    const example = test && {...plan,tests:[test]};
+    const source = example && (remote ? compiledScript(language,code,example,true) : buildScript(language, instrumentInterpreted(language,code), example));
     if (!source) {
       status.textContent = 'Line trace is not available for this language or problem shape yet.';
-      output.textContent = 'Run examples to inspect printed output. Compiled-language line tracing requires a debugger.';
+      output.textContent = 'Use the solution method and a problem with supported example types.';
       return;
     }
     const version = traceVersion;
@@ -948,7 +967,8 @@ function queueTrace() {
       if (version !== traceVersion) return;
       traceController = null;
       output.textContent = 'Input  ' + JSON.stringify(test.args) + '\n\n' + [result.output,result.error].filter(Boolean).join('\n').slice(0,16000);
-      status.textContent = result.ok ? 'First example · executed lines and scalar locals' : 'Trace could not run';
+      output.textContent=output.textContent.replaceAll('__CODEFIELD_CASE__','Returned  ');
+      status.textContent = result.ok ? (remote ? 'First example · observed initializers, output and return' : 'First example · executed lines and scalar locals') : 'Trace could not run';
     },1500);
     return;
   }
@@ -981,7 +1001,16 @@ function queueTrace() {
     status.textContent = 'First example · assignments and console output';
   }, 1500);
 }
-$('#trace-toggle').onchange = () => { $('#trace-output').hidden = !$('#trace-toggle').checked; try { localStorage.setItem('codefield.trace.enabled', $('#trace-toggle').checked ? '1' : '0'); } catch {} queueTrace(); };
+$('#trace-toggle').onchange = () => {
+  const lang=languageSelect.value;
+  if ($('#trace-toggle').checked && ['cpp','rust','csharp','java','crystal'].includes(lang) && !traceConsent.has(lang)) {
+    if(confirm('Automatically send this solution and its first example to '+(lang==='rust'?'Rust Playground':'Compiler Explorer')+' after edits?')) traceConsent.add(lang);
+    else $('#trace-toggle').checked=false;
+  }
+  $('#trace-output').hidden=!$('#trace-toggle').checked;
+  try { localStorage.setItem('codefield.trace.enabled',$('#trace-toggle').checked?'1':'0'); } catch {}
+  queueTrace();
+};
 try { $('#trace-toggle').checked = localStorage.getItem('codefield.trace.enabled') === '1'; } catch {}
 $('#trace-output').hidden = !$('#trace-toggle').checked;
 $('#quick-code').onclick = () => { if(state.problem) showStage('code', true); };

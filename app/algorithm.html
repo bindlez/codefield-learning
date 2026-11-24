@@ -1,0 +1,6 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Algorithm Studio · Codefield</title><link rel="stylesheet" href="../src/editor.css"><link rel="stylesheet" href="studio-workspaces.css"></head><body><main><nav><a href="index.html">Playground</a><a href="learn.html">Learn</a><a href="practice.html">Problems</a><a href="projects.html">Projects</a></nav><h1>Algorithm Studio</h1><p>Design a function over an integer array. Select an instruction to see its implementation in each language.</p><section><h2>Pseudocode</h2><div id="pseudo"></div><p id="diagnostic" role="status"></p><details><summary>Grammar &amp; examples</summary><pre>FUNCTION name(nums)
+SET name = expression
+FOR EACH value IN nums
+IF value > 0
+RETURN expression
+END IF / END FOR / END FUNCTION</pre><label>Describe an idea <input id="idea" placeholder="Sum the positive numbers"></label><button id="interpret">Suggest structure</button><pre id="suggestion"></pre><button id="approve" hidden>Use suggestion</button></details></section><div class="studio-columns" id="outputs"></div></main><script type="module" src="algorithm.js"></script></body></html>

@@ -1,4 +1,4 @@
-import {createEditor} from '../src/editor.js';
+import {createEditor} from './workspace-editor.js';
 import {inferVariables} from '../src/inference.js';
 import {runProgram, tokenizers} from './languages.js';
 
@@ -39,7 +39,7 @@ function queueRun() {
   const version = ++sequence;
   const code = editor.getValue();
   if (!code.trim()) { result.textContent = 'Write some code to see a result.'; return; }
-  result.textContent = ['rust','cpp','csharp'].includes(language)
+  result.textContent = ['rust','cpp','csharp','java','crystal'].includes(language)
     ? 'Waiting… Run will send this code to the language service.'
     : 'Waiting for you to pause…';
   timer = setTimeout(async () => {
@@ -54,7 +54,7 @@ function mount(nextLanguage, code) {
   if (!tokenizers[nextLanguage]) return;
   language = nextLanguage;
   if (editor) editor.destroy();
-  editor = createEditor('#editor', {
+  editor = createEditor('#editor', {language,minimal:true,
     value:code, label: language + ' floating code editor', tokenize:tokenizers[language], autoIndent:true,
     onChange(value) {
       try { localStorage.setItem('codefield.floating.draft', JSON.stringify({language,code:value})); } catch {}

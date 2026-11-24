@@ -6,8 +6,8 @@ import {tokenizeCpp} from '../src/languages/cpp.js';
 import {rustProgram} from './rust-snippet.js';
 import {cppProgram} from './cpp-snippet.js';
 
-export const languages = {javascript:'JavaScript', ruby:'Ruby', python:'Python', rust:'Rust', cpp:'C++', csharp:'C#'};
-export const tokenizers = {javascript:tokenizeJavaScript, ruby:tokenizeRuby, python:tokenizePython, rust:tokenizeRust, cpp:tokenizeCpp, csharp:tokenizeCpp};
+export const languages = {javascript:'JavaScript', ruby:'Ruby', python:'Python', rust:'Rust', cpp:'C++', csharp:'C#',java:'Java',crystal:'Crystal'};
+export const tokenizers = {javascript:tokenizeJavaScript, ruby:tokenizeRuby, python:tokenizePython, rust:tokenizeRust, cpp:tokenizeCpp, csharp:tokenizeCpp,java:tokenizeCpp,crystal:tokenizeRuby};
 export function languageOptions(select, selected = 'javascript') {
   for (const [id, name] of Object.entries(languages)) select.add(new Option(name, id));
   select.value = selected;
@@ -38,7 +38,7 @@ export async function runProgram(language, code, {signal} = {}) {
       if (language === 'ruby') worker.postMessage({type:'init'});
     });
   }
-  if (!['rust','cpp','csharp'].includes(language)) return {ok:false,error:'Unsupported language.',output:''};
+  if (!['rust','cpp','csharp','java','crystal'].includes(language)) return {ok:false,error:'Unsupported language.',output:''};
   const controller = new AbortController();
   const abort = () => controller.abort();
   signal?.addEventListener('abort', abort, {once:true});
@@ -50,9 +50,9 @@ export async function runProgram(language, code, {signal} = {}) {
       method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,
       body:JSON.stringify({channel:'stable',mode:'debug',edition:'2021',crateType:'bin',tests:false,code:rustProgram(code).code,backtrace:false})
     });
-    else response = await fetch('https://godbolt.org/api/compiler/' + (language === 'csharp' ? 'dotnet100csharpcoreclr' : 'g132') + '/compile', {
+    else response = await fetch('https://godbolt.org/api/compiler/' + ({csharp:'dotnet100csharpcoreclr',cpp:'g132',java:'java26021',crystal:'crystal192'}[language]) + '/compile', {
       method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},signal:controller.signal,
-      body:JSON.stringify({source:language === 'cpp' ? cppProgram(code).code : code,options:{userArguments:language === 'csharp' ? '' : '-std=c++20',compilerOptions:{executorRequest:true},filters:{execute:true},tools:[],libraries:[]},lang:language === 'csharp' ? 'csharp' : 'c++',allowStoreCodeDebug:false})
+      body:JSON.stringify({source:language === 'cpp' ? cppProgram(code).code : code,options:{userArguments:language === 'cpp' ? '-std=c++20' : '',compilerOptions:{executorRequest:true},filters:{execute:true},tools:[],libraries:[]},lang:language === 'cpp' ? 'c++' : language,allowStoreCodeDebug:false})
     });
     if (!response.ok) throw Error('Execution service returned HTTP ' + response.status);
     const result = await response.json();

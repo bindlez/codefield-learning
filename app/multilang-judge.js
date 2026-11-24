@@ -1,7 +1,9 @@
 import {compareValues} from './judge.js';
 import {runProgram} from './languages.js';
+import {compiledScript} from './compiled-practice.js';
 
 export function buildScript(language, code, plan) {
+  if (['rust','cpp','csharp','java','crystal'].includes(language)) return compiledScript(language,code,plan);
   if (!['python','ruby'].includes(language)) return null;
   if (!plan.functionName || !plan.tests.length || !/^[A-Za-z_][\w]*$/.test(plan.functionName)) return null;
   if ([...(plan.params || []),plan.returns].some(item => /TreeNode|ListNode|Node|NestedInteger/i.test(item?.type || ''))) return null;

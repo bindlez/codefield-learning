@@ -1,4 +1,4 @@
-import {createEditor} from '../src/editor.js';
+import {createEditor} from './workspace-editor.js';
 import {languages, languageOptions, tokenizers, runProgram} from './languages.js';
 import {parseVoiceCommand, resolveVoiceSelection} from '../src/voice-commands.js';
 const $ = selector => document.querySelector(selector);
@@ -18,15 +18,15 @@ function confirmAction() {
   if(action==='run-remote') { remoteConsent.add(language.value); run(); }
 }
 $('#voice-confirm').onclick=confirmAction; $('#voice-cancel').onclick=cancelConfirmation;
-function mount() {
+function mount() { controller?.abort(); controller=null; pendingAction=null; confirmBox.hidden=true;
   editor?.destroy();
   const key = 'codefield.voice.draft.' + language.value;
-  editor = createEditor('#editor', {value:localStorage.getItem(key) || '', label:'Voice workspace code', tokenize:tokenizers[language.value], autoIndent:true, onChange:value=>localStorage.setItem(key,value)});
+  editor = createEditor('#editor', {language:language.value,value:localStorage.getItem(key) || '', label:'Voice workspace code', tokenize:tokenizers[language.value], autoIndent:true, onChange:value=>localStorage.setItem(key,value)});
   localStorage.setItem('codefield.voice.language',language.value);
 }
 mount(); language.onchange = mount;
 async function run() {
-  if (['rust','cpp','csharp'].includes(language.value) && !remoteConsent.has(language.value)) { askConfirmation('run-remote','This sends your code to '+(language.value==='rust'?'Rust Playground':'Compiler Explorer')+'. Say “confirm” to run or “cancel”.'); return; }
+  if (['rust','cpp','csharp','java','crystal'].includes(language.value) && !remoteConsent.has(language.value)) { askConfirmation('run-remote','This sends your code to '+(language.value==='rust'?'Rust Playground':'Compiler Explorer')+'. Say “confirm” to run or “cancel”.'); return; }
   controller?.abort(); controller = new AbortController();
   const current = controller;
   output.textContent = 'Running…';
@@ -43,6 +43,23 @@ else {
     for (let i=event.resultIndex;i<event.results.length;i++) {
       if (!event.results[i].isFinal) continue;
       const text=event.results[i][0].transcript.trim(); $('#transcript').textContent=text;
+      const fileCommand=/^(save|open) file ([\w -]{1,64})[.!]?$/i.exec(text);
+      if(fileCommand){
+        const name=fileCommand[2].trim().toLowerCase(),key='codefield.voice.file.'+language.value+'.'+name;
+        if(fileCommand[1].toLowerCase()==='save'){localStorage.setItem(key,editor.getValue());status.textContent='Saved '+name;}
+        else {const value=localStorage.getItem(key);if(value===null)status.textContent='No file named '+name;else{editor.selectRange(0,editor.getValue().length);editor.insert(value);status.textContent='Opened '+name+'. Say undo to return.';}}
+        continue;
+      }
+      const lineCommand=/^go to line (\d+)[.!]?$/i.exec(text);
+      if(lineCommand){
+        const lines=editor.getValue().split('\n'),n=Number(lineCommand[1]);
+        if(n>0&&n<=lines.length){const at=lines.slice(0,n-1).reduce((a,l)=>a+l.length+1,0);editor.selectRange(at,at);status.textContent='Line '+n;}
+        else status.textContent='Line outside this file.';
+        continue;
+      }
+      const occurrence=/^(?:next|find) ([\w$]+)[.!]?$/i.exec(text);
+      if(occurrence){status.textContent=editor.find(occurrence[1])?'Selected '+occurrence[1]:'No matching text.';continue;}
+      if(/^new file[.!]?$/i.test(text)){editor.selectRange(0,editor.getValue().length);askConfirmation('delete','Start a blank file? Say confirm or cancel.');continue;}
       if (/^cancel[.!]?$/i.test(text) && pendingAction) { cancelConfirmation(); continue; }
       if (/^confirm[.!]?$/i.test(text) && pendingAction) { confirmAction(); continue; }
       const command=parseVoiceCommand(text), selection=resolveVoiceSelection(editor.getValue(),editor.getCaret(),command);
@@ -60,7 +77,7 @@ else {
       else if(/^stop (listening|microphone)[.!]?$/i.test(text)) { recognition.stop(); status.textContent='Microphone stopped.'; }
       else if(/^new line[.!]?$/i.test(text)) { editor.insert('\n'); status.textContent='Inserted a new line.'; }
       else if(/^tab[.!]?$/i.test(text)) { editor.insert('  '); status.textContent='Inserted indentation.'; }
-      else if(/^language (javascript|ruby|python|rust|c plus plus|c sharp)[.!]?$/i.test(text)) {
+      else if(/^language (javascript|ruby|python|rust|c plus plus|c sharp|java|crystal)[.!]?$/i.test(text)) {
         const spoken = text.toLowerCase().replace(/[.!?]+$/,'').replace(/^language /,'');
         language.value = {'c plus plus':'cpp','c sharp':'csharp'}[spoken] || spoken;
         mount(); status.textContent='Language changed to '+languages[language.value]+'.';

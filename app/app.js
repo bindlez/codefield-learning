@@ -1,4 +1,5 @@
-import { createEditor } from '../src/editor.js';
+import {runProgram} from './languages.js';
+import { createEditor } from './workspace-editor.js';
 import { tokenizeRuby } from '../src/languages/ruby.js';
 import { tokenizeJavaScript } from '../src/languages/javascript.js';
 import { selectionContext } from '../src/completion.js';
@@ -286,7 +287,7 @@ function showReference(){
 }
 function ensureWorker(){
  if(worker || booting)return;
- if(['rust','cpp','csharp'].includes(state.language)){
+ if(['rust','cpp','csharp','java','crystal'].includes(state.language)){
   ready=true;status('READY');
   $('#execution-note').textContent=state.language==='rust'?'Rust runs as a fresh program. Run sends your code to the public Rust Playground service.':'Run sends your code to Compiler Explorer. C++ snippets are wrapped in main().';
   if(pending)execute();
@@ -310,6 +311,7 @@ function ensureWorker(){
  if(state.language==='ruby')worker.postMessage({type:'init'});
 }
 async function compileProgram(language,code,signal){
+ if(language!=='rust'){const r=await runProgram(language,code,{signal}); return {...r,value:r.value ?? (r.ok?'Program finished':'')};}
  if(language==='rust'){
   const program=rustProgram(code,$('#rust-wrap-toggle').checked);
   const response=await fetch('https://play.rust-lang.org/execute',{method:'POST',headers:{'Content-Type':'application/json'},signal:signal,body:JSON.stringify({channel:'stable',mode:'debug',edition:'2021',crateType:'bin',tests:false,code:program.code,backtrace:false})});
@@ -342,7 +344,7 @@ function stopLivePreview(){previewController?.abort();previewController=null;cle
 function queueLivePreview(){
  stopLivePreview();const output=$('#live-preview-output');
  if(!$('#live-preview-toggle').checked){output.textContent='Enable auto-run to preview your code as you type.';return}
- if(['rust','cpp'].includes(state.language)){
+ if(['rust','cpp','csharp','java','crystal','python'].includes(state.language)){
   const language=state.language,code=editor.getValue();
   output.textContent='Waiting for you to pause…';
   previewTimer=setTimeout(async()=>{
@@ -375,8 +377,8 @@ function queueLivePreview(){
  },900);
 }
 $('#live-preview-toggle').onchange=queueLivePreview;
-function execute(){if($('#run').disabled)return;followOutput=true;latestButton.hidden=true;if(!ready){pending=true;ensureWorker();return}pending=false;$('#run').disabled=true;status('RUNNING');const code=editor.getValue();submittedCode=code;if(['rust','cpp','csharp'].includes(state.language)){runCompiled(code);return}worker.postMessage({type:'run',code});timer=setTimeout(()=>{stop();status('TIMEOUT');$('#execution-note').textContent='Execution stopped after 10 seconds. The session was reset.'},10000)}
-function selectLanguage(language){if(language!==state.language && ['rust','cpp'].includes(language))$('#live-preview-toggle').checked=false;activeProblem=null;stop();stopLivePreview();explorationKey='';selectedItems=null;$('#selected-panel').hidden=true;$('#reference-list').hidden=false;$('#selected-detail').hidden=true;$('#parent-path').replaceChildren();state.language=language;const data=content[language];if(editor)editor.destroy();editor=createEditor('#editor',{value:typeof state.code[language]==='string'?state.code[language]:data.starter,label:`${language} code editor`,tokenize:language==='ruby'?tokenizeRuby:language==='rust'?tokenizeRust:language==='cpp'?tokenizeCpp:tokenizeJavaScript,complete,onCompletionHighlight:previewCompletion,onSelection:inspectSelection,onSetValue:()=>{refreshRustWrapper();updateCodeMap();queueLivePreview();queueStudioAnalysis()},autoIndent:true,onChange:(value,info)=>{state.code[state.language]=value;save();sendFloatingState();refreshRustWrapper();updateCodeMap();queueInference(value,info.caret);queueLivePreview();queueStudioAnalysis()}});refreshRustWrapper();updateCodeMap();$('#language').value=language;$('#file-name').textContent=data.filename;$('#editor-hint').textContent=language==='ruby'?'Ruby · persistent session':language==='rust'?'Rust · run sends code to Rust Playground':language==='cpp'?'C++ · run sends code to Compiler Explorer':'JavaScript · persistent worker';sendFloatingState();$('#challenge-title').textContent=data.exercise.title;$('#challenge-text').textContent=data.exercise.text;$('#hint-text').textContent=data.exercise.hint;$('#hint-text').hidden=true;$('#hint').textContent='Show hint';$('#search').value='';$('#inspection').hidden=true;$('#output').replaceChildren();for(const item of state.history.filter(h=>h.language===language))appendEntry(item.code,item.result);showReference();save();ensureWorker();queueLivePreview()}
+function execute(){if($('#run').disabled)return;followOutput=true;latestButton.hidden=true;if(!ready){pending=true;ensureWorker();return}pending=false;$('#run').disabled=true;status('RUNNING');const code=editor.getValue();submittedCode=code;if(['rust','cpp','csharp','java','crystal'].includes(state.language)){runCompiled(code);return}worker.postMessage({type:'run',code});timer=setTimeout(()=>{stop();status('TIMEOUT');$('#execution-note').textContent='Execution stopped after 10 seconds. The session was reset.'},10000)}
+function selectLanguage(language){if(language!==state.language && ['rust','cpp','csharp','java','crystal'].includes(language))$('#live-preview-toggle').checked=false;activeProblem=null;stop();stopLivePreview();explorationKey='';selectedItems=null;$('#selected-panel').hidden=true;$('#reference-list').hidden=false;$('#selected-detail').hidden=true;$('#parent-path').replaceChildren();state.language=language;const data=content[language];if(editor)editor.destroy();editor=createEditor('#editor',{language,playground:true,value:typeof state.code[language]==='string'?state.code[language]:data.starter,label:`${language} code editor`,tokenize:language==='ruby'?tokenizeRuby:language==='rust'?tokenizeRust:language==='cpp'?tokenizeCpp:tokenizeJavaScript,complete,onCompletionHighlight:previewCompletion,onSelection:inspectSelection,onSetValue:()=>{refreshRustWrapper();updateCodeMap();queueLivePreview();queueStudioAnalysis()},autoIndent:true,onChange:(value,info)=>{state.code[state.language]=value;save();sendFloatingState();refreshRustWrapper();updateCodeMap();queueInference(value,info.caret);queueLivePreview();queueStudioAnalysis()}});refreshRustWrapper();updateCodeMap();$('#language').value=language;$('#file-name').textContent=data.filename;$('#editor-hint').textContent=language==='ruby'?'Ruby · persistent session':language==='rust'?'Rust · run sends code to Rust Playground':language==='cpp'?'C++ · run sends code to Compiler Explorer':'JavaScript · persistent worker';sendFloatingState();$('#challenge-title').textContent=data.exercise.title;$('#challenge-text').textContent=data.exercise.text;$('#hint-text').textContent=data.exercise.hint;$('#hint-text').hidden=true;$('#hint').textContent='Show hint';$('#search').value='';$('#inspection').hidden=true;$('#output').replaceChildren();for(const item of state.history.filter(h=>h.language===language))appendEntry(item.code,item.result);showReference();save();ensureWorker();queueLivePreview()}
 $('#language').onchange=e=>selectLanguage(e.target.value);$('#search').oninput=showReference;$('#method-search').oninput=renderMethods;
 $('#selected-clear').onclick=()=>{selectionId++;selectedItems=null;$('#selected-panel').hidden=true;$('#reference-list').hidden=false;$('#search').value='';showReference()};
 $('#starter').onclick=()=>{const text=activeProblem?.language===state.language?activeProblem.starter:content[state.language].exercise.starter;editor.setValue(text);state.code[state.language]=text;save();editor.focus()};

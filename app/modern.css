@@ -274,3 +274,8 @@ body { zoom: .88; }
  .reference-divider{background:linear-gradient(90deg,transparent 3px,#466355 3px,#466355 5px,transparent 5px)}
  .reference-divider:hover,.reference-divider:focus-visible{background:#638d78}
 }
+.shared-editor-tools{padding:6px 10px;margin:4px 0;border:1px solid #344452;border-radius:8px;background:#151d27;color:#dbe8ee;min-width:0}
+.shared-editor-tools summary{cursor:pointer;font-size:.88rem}.shared-editor-tools button{padding:5px 8px;border-radius:5px;background:#20302e;color:#c4efdc;border:1px solid #395048}
+.edit-actions,.model-items,.editor-reference{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.shared-editor-tools pre{white-space:pre-wrap;overflow:auto;max-height:24vh}
+@media(max-width:1100px){.top .modes{display:flex;max-width:100%;overflow-x:auto;justify-content:start}.top .modes a{white-space:nowrap;flex:none;padding:8px;min-height:40px}.top{min-width:0}.path-controls{display:grid;gap:6px}.path-controls .open-any{flex-wrap:wrap}}
+@media(max-width:760px){.problem-list-panel details[open]{overflow-y:auto;max-height:55dvh}.practice-shell .approach-bar,.practice-shell .workbench-actions{flex-wrap:wrap}.workspace{padding-inline:max(6px,env(safe-area-inset-left))}.semantic-panel summary,.shared-editor-tools summary{min-height:32px}}

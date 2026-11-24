@@ -1,5 +1,5 @@
 import {languages,tokenizers,languageOptions,runProgram} from './languages.js';
-import { createEditor } from '../src/editor.js';
+import { createEditor } from './workspace-editor.js';
 import { javascriptCompletion, guideFor } from './js-methods.js';
 import { inferContext } from '../src/inference.js';
 import { createMethodCard } from './method-card.js';
@@ -107,7 +107,7 @@ export function createNotebook({ onAsk } = {}) {
 
   function mountEditor() {
     editor?.destroy();
-    editor = createEditor('#notebook-editor', {
+    editor = createEditor('#notebook-editor', {language,
       value: drafts[draftId()] ?? (language === 'javascript' ? original : ''),
       label: `${notebookTitle} notebook editor`,
       tokenize: tokenizers[language],

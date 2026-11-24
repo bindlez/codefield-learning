@@ -1,6 +1,6 @@
 import {languages,tokenizers,languageOptions,runProgram} from './languages.js';
 import { curriculum } from './curriculum.js';
-import { createEditor } from '../src/editor.js';
+import { createEditor } from './workspace-editor.js';
 import { tokenizeJavaScript } from '../src/languages/javascript.js';
 import { sanitizeHtml } from './sanitize.js';
 import { initCoach } from './ai.js';
@@ -379,7 +379,7 @@ function checkpointNode(lesson) {
     methodCard.hide();
     solution.hidden = lessonLanguage !== 'javascript';
     solutionBox.hidden = true;
-    checkpointEditor = createEditor(editorHost, {
+    checkpointEditor = createEditor(editorHost, {language:lessonLanguage,
       value: progress.drafts[draftId(lesson.id)] ?? (lessonLanguage === 'javascript' ? checkpoint.starter || '' : ''),
       label: `${lesson.title} checkpoint editor`,
       tokenize: tokenizers[lessonLanguage],

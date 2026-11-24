@@ -13,18 +13,18 @@
 <link rel="stylesheet" href="./modern.css"></head>
 <body>
 <header class="top">
-  <a class="brand" href="./index.html" aria-label="Codefield home"><span class="brand-icon" aria-hidden="true">⌘</span> codefield <span class="badge">ALPHA 0.4.0</span></a>
+  <a class="brand" href="./index.html" aria-label="Codefield home"><span class="brand-icon" aria-hidden="true">⌘</span> codefield <span class="badge">ALPHA 0.5.0</span></a>
   <nav class="modes" aria-label="Workspace modes">
     <a href="./index.html">Playground</a>
     <a href="./beginner.html">Beginner</a><a href="./learn.html">Learn</a>
     <a href="./practice.html" aria-current="page">Practice</a><a href="./practice.html?mode=problem">Problems</a>
-  </nav>
+  <a href="./algorithm.html">Algorithm Studio</a><a href="./projects.html">Projects</a><a href="./voice.html">Voice</a></nav>
   <div class="top-right">
     <span class="local">● &nbsp;Drafts save here</span>
     <button id="library-toggle" class="coach-toggle library-toggle" type="button">▤ Library</button>
     <button id="coach-toggle" class="coach-toggle" type="button"><span class="dot" aria-hidden="true"></span> AI coach</button>
   </div>
-<a class="offline-link" href="./offline.html">Offline playground</a><button class="offline-link" type="button" onclick="document.getElementById('server-help').showModal()">Start server</button></header><dialog id="server-help"><h2>Start Codefield</h2><p>Open the Codefield folder and double-click <strong>Start Codefield.cmd</strong>. The launcher starts the server and opens your browser.</p><form method="dialog"><button class="run">Got it</button></form></dialog>
+<a class="offline-link" href="./offline.html">Offline playground</a><button class="offline-link" type="button" onclick="document.getElementById('server-help').showModal()">Start server</button></header><dialog id="server-help"><h2>Start Codefield</h2><p><a href="codefield://start">Start local server</a> · Run <strong>Enable site launcher.ps1</strong> once on Windows to enable this link. You can also double-click <strong>Start Codefield.cmd</strong>. The launcher starts the server and opens your browser.</p><form method="dialog"><button class="run">Got it</button></form></dialog>
 
 <main class="practice-shell">
   <aside class="problem-list-panel" aria-label="Problem browser"><details id="problem-browser" open><summary class="browser-summary">Browse or search problems</summary>
@@ -121,7 +121,7 @@
 
       <section class="workbench" aria-label="Solution editor">
         <div class="panel-bar">
-          <div class="panel-title"><span class="ruby-dot">◆</span><label for="practice-language" class="sr-only">Language</label><select id="practice-language" aria-label="Solution language"><option value="javascript">JavaScript</option><option value="ruby">Ruby</option><option value="python">Python</option><option value="rust">Rust</option><option value="cpp">C++</option><option value="csharp">C#</option></select><span class="saved" id="draft-status">Draft saved</span></div>
+          <div class="panel-title"><span class="ruby-dot">◆</span><label for="practice-language" class="sr-only">Language</label><select id="practice-language" aria-label="Solution language"><option value="javascript">JavaScript</option><option value="ruby">Ruby</option><option value="python">Python</option><option value="rust">Rust</option><option value="cpp">C++</option><option value="csharp">C#</option><option value="java">Java</option><option value="crystal">Crystal</option></select><span class="saved" id="draft-status">Draft saved</span></div>
           <div class="actions">
             <button id="practice-reset" class="text-button" type="button">Reset code</button>
           </div>
