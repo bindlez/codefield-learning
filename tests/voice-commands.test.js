@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseVoiceCommand,resolveVoiceSelection} from '../src/voice-commands.js';
+import {parseVoiceCommand,resolveVoiceSelection,findVoiceMatches} from '../src/voice-commands.js';
 
 test('voice selection handles identifiers and previous words without an LLM', () => {
   const code = 'word.chars.tally';
@@ -19,4 +19,8 @@ test('recognizes speech-friendly counts and method context', () => {
   assert.deepEqual(parseVoiceCommand('highlight tally.'), {type:'highlight-name',name:'tally'});
   assert.deepEqual(parseVoiceCommand('open parenthesis'), {type:'insert-symbol',text:'('});
   assert.deepEqual(parseVoiceCommand('semicolon'), {type:'insert-symbol',text:';'});
+});
+
+test('ambiguous names provide ordered exact token matches', () => {
+  assert.deepEqual(findVoiceMatches('x + xy + x','x'),[{start:0,end:1},{start:9,end:10}]);
 });

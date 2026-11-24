@@ -1,1 +1,21 @@
-body{margin:0;background:#0d121b;color:#e8eef5;font:15px system-ui}.voice-workspace{max-width:1600px;margin:auto;padding:clamp(12px,2vw,28px)}a{color:#a8edda}h1{margin:.4em 0}h2{font-size:1rem}.voice-actions{display:flex;gap:10px;align-items:end;flex-wrap:wrap}button,select{background:#203631;color:#eafff7;border:1px solid #548577;border-radius:8px;padding:10px}label{display:grid;gap:4px}.voice-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(240px,1fr);gap:16px}.voice-grid section,.voice-grid aside{background:#151e29;border:1px solid #344455;border-radius:12px;padding:16px;min-width:0}#editor{height:55vh;min-height:280px}pre{white-space:pre-wrap;overflow:auto;max-height:45vh}@media(max-width:700px){.voice-grid{grid-template-columns:1fr}#editor{height:45vh}.voice-workspace{padding:12px}}
+body{margin:0;background:#0d121b;color:#e8eef5;font:15px/1.5 system-ui}
+.voice-workspace{max-width:1600px;margin:auto;padding:clamp(12px,2vw,28px)}
+a{color:#a8edda}h1{margin:.3em 0}h2{font-size:1rem;margin:.3em 0 .6em}
+header p{margin:.25em 0 1em;color:#a9bac7}
+.voice-actions{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+button,select{font:inherit;background:#203631;color:#eafff7;border:1px solid #548577;border-radius:8px;padding:10px;min-height:44px}
+button[aria-pressed=true]{background:#a8edda;color:#10241d}
+label{display:grid;gap:4px}.speech-toggle{display:flex;align-items:center;min-height:44px;color:#bfd2d0}
+.voice-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:16px}
+.voice-grid section,.voice-grid aside{background:#151e29;border:1px solid #344455;border-radius:12px;padding:16px;min-width:0}
+.voice-grid aside{display:flex;flex-direction:column;min-height:0}
+#editor{height:55vh;min-height:280px}#status{min-height:1.5em;color:#b8d8cc}
+#transcript{margin:.2em 0 1em;color:#a8edda;overflow-wrap:anywhere}
+#output{white-space:pre-wrap;overflow:auto;overflow-wrap:anywhere;flex:1;min-height:180px;max-height:55vh;padding:12px;background:#0d151c;border-radius:8px}
+details summary{cursor:pointer;color:#b5ddcf}
+@media(max-width:700px){
+ .voice-workspace{padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
+ .voice-grid{grid-template-columns:minmax(0,1fr);gap:8px}.voice-grid section,.voice-grid aside{padding:10px}
+ .voice-actions{position:sticky;top:0;z-index:4;background:#0d121b;padding:6px 0}
+ #editor{height:42dvh;min-height:220px}#output{min-height:120px;max-height:30dvh}
+}

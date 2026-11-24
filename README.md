@@ -1,4 +1,4 @@
-# Codefield 0.5.0-alpha
+# Codefield 0.5.1-alpha
 
 This release adds a Prism-backed Ruby Code Model, Algorithm Studio, browser-stored Projects, expanded practice paths and harder variants, and supported example runners for eight languages. Practice and lesson editors share Code Model and method suggestions. The PRD and the remaining work for the next pass are in [docs/next-pass.md](docs/next-pass.md). Details below describe earlier features where still applicable.
 

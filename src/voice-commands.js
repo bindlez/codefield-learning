@@ -28,3 +28,9 @@ export function resolveVoiceSelection(code, caret, command) {
   }
   return null;
 }
+
+export function findVoiceMatches(code, name) {
+  return [...String(code).matchAll(/[A-Za-z_$][\w$]*|\d+/g)]
+    .filter(token => token[0].toLowerCase() === String(name).toLowerCase())
+    .map(token => ({start:token.index,end:token.index + token[0].length}));
+}
