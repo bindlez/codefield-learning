@@ -283,3 +283,9 @@ body { zoom: .88; }
 .workbench .trace-panel{margin:8px 10px}.workbench .trace-panel pre{max-height:190px;min-height:80px}
 .workbench .code-editor{height:clamp(300px,44vh,600px)}
 @media(max-width:760px){.workbench .trace-panel{position:sticky;top:0;z-index:9}.workbench .trace-panel pre{max-height:20dvh;min-height:50px}.workbench .code-editor{height:44dvh;min-height:260px}}
+.playground-problem{margin:8px 0;padding:12px;display:flex;gap:12px;align-items:start;flex-wrap:wrap}
+.playground-problem[hidden]{display:none}.playground-problem>div:first-child{flex:1;min-width:220px}.playground-problem p{margin:4px 0;max-height:110px;overflow:auto;white-space:pre-wrap}
+.problem-handoff-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.problem-handoff-actions button,.problem-handoff-actions a{padding:7px 10px;border:1px solid #49685b;border-radius:6px;background:#1c302b;color:#d7fae9}
+.playground-problem pre{flex-basis:100%;margin:0;max-height:180px;overflow:auto;white-space:pre-wrap}
+.model-transform{display:flex;gap:5px;flex-wrap:wrap}.model-transform strong{flex-basis:100%}.model-transform button{padding:5px 8px}
+.trace-navigation{display:flex;gap:8px;align-items:center;padding:4px 10px;border-top:1px solid #30473c}.trace-navigation[hidden]{display:none}.trace-navigation span{flex:1;font-size:12px;overflow-wrap:anywhere}.trace-navigation button{padding:4px 10px;border:1px solid #456256;border-radius:5px;background:#1c302b;color:#d7fae9}

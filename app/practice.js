@@ -154,6 +154,7 @@ function switchVariant(enabled) {
   cancelTrace(); state.runToken++; $('#test-run').disabled=false;
   store.drafts[draftKey()] = editor.getValue(); saveStore();
   state.variant = enabled;
+  $('#playground-practice').href='./index.html?problem='+encodeURIComponent(state.problem.slug)+'&language='+encodeURIComponent(languageSelect.value)+(enabled?'&variant=harder':'');
   state.plan = testsFromProblem(state.problem);
   if (enabled) state.plan.tests = variants[state.problem.slug].tests.map(test=>({...test,known:true}));
   state.lastVerifiedCode = '';
@@ -325,9 +326,11 @@ function renderBanner() {
 
 async function openProblem(slug, preloaded = null) {
   if (!slug || (slug === state.selected && state.problem)) return;
+  if(state.selected && state.selected!==slug){const url=new URL(location.href);url.searchParams.delete('variant');history.replaceState(null,'',url);}
   if (sprintDeadline && sprintSlug !== slug) { clearInterval(sprintTimer); sprintDeadline=0; saveSprint(); $('#sprint-status').textContent='Timer stopped after changing problems.'; }
   cancelTrace();
   $('#voice-practice').href='./voice.html?problem='+encodeURIComponent(slug)+'&language='+encodeURIComponent(languageSelect.value);
+  $('#playground-practice').href='./index.html?problem='+encodeURIComponent(slug)+'&language='+encodeURIComponent(languageSelect.value);
   state.variant = false;
   $('#variant-start').hidden = true; $('#variant-exit').hidden = true; $('#variant-description').hidden = true;
   state.selected = slug;
@@ -378,6 +381,7 @@ async function openProblem(slug, preloaded = null) {
       renderProblem();
       mountEditor();
       renderVariantControl();
+      if(new URLSearchParams(location.search).get('variant')==='harder')switchVariant(true);
       renderBriefing(preloaded);
       showStage((new URLSearchParams(location.search).get('mode') === 'problem' || (window.__resumeSlug === state.problem.slug && window.__resumeStage === 'code')) ? 'code' : 'learn');
       refreshApproaches();
@@ -391,6 +395,7 @@ async function openProblem(slug, preloaded = null) {
     renderProblem();
     mountEditor();
     renderVariantControl();
+    if(new URLSearchParams(location.search).get('variant')==='harder')switchVariant(true);
     renderBriefing(data);
     showStage(new URLSearchParams(location.search).get('mode') === 'problem' ? 'code' : 'learn');
     refreshApproaches();
@@ -935,10 +940,33 @@ function cancelTrace() {
   traceRunner = null;
   traceController?.abort(); traceController = null;
 }
+const traceNavigation=document.createElement('div');
+traceNavigation.className='trace-navigation';traceNavigation.hidden=true;
+traceNavigation.innerHTML='<button type="button" aria-label="Previous trace step">←</button><span role="status"></span><button type="button" aria-label="Next trace step">→</button>';
+$('#trace-output').before(traceNavigation);
+let traceSteps=[],traceIndex=0;
+function showTraceStep(){
+  const step=traceSteps[traceIndex];if(!step || !editor)return;
+  traceNavigation.querySelector('span').textContent='Observed step '+(traceIndex+1)+' / '+traceSteps.length+' · '+step.text;
+  const lines=editor.getValue().split('\n');if(step.line>lines.length)return;
+  const offset=lines.slice(0,step.line-1).reduce((n,line)=>n+line.length+1,0);
+  editor.selectRange(offset,offset+lines[step.line-1].length);
+}
+const traceButtons=traceNavigation.querySelectorAll('button');
+traceButtons[0].onclick=()=>{traceIndex=Math.max(0,traceIndex-1);showTraceStep();};
+traceButtons[1].onclick=()=>{traceIndex=Math.min(traceSteps.length-1,traceIndex+1);showTraceStep();};
+function setTraceText(text){
+  $('#trace-output').textContent=text;
+  traceSteps=text.split('\n').flatMap(line=>{const match=line.match(/^\[(?:line (\d+)|step (\d+)\]|step\] L(\d+))/);return match?[{line:Number(match[1] || match[2] || match[3]),text:line}]:[];});
+  traceIndex=0;traceNavigation.hidden=!traceSteps.length;
+  if(traceSteps.length)traceNavigation.querySelector('span').textContent=traceSteps.length+' observed steps · use arrows to inspect';
+}
 function queueTrace() {
   cancelTrace();
+  traceNavigation.hidden=true;
   const status = $('#trace-status'), output = $('#trace-output');
   if (!$('#trace-toggle').checked) {
+    traceNavigation.hidden=true;
     status.textContent = 'Turn on live trace to follow the published examples.';
     return;
   }
@@ -968,7 +996,7 @@ function queueTrace() {
       if (version !== traceVersion) return;
       traceController = null;
       const preview=describeExamplesTrace(result,plan.tests,plan.returns?.type);
-      output.textContent=preview.text;
+      setTraceText(preview.text);
       status.textContent=preview.verdict+' · published examples';
     },1500);
     return;
@@ -998,7 +1026,7 @@ function queueTrace() {
       return;
     }
     const known=results.filter(item=>item.passed!==null),passed=known.filter(item=>item.passed).length;
-    output.textContent=results.map((item,i)=>'Example '+(i+1)+' · '+(item.passed===null?'self-check':item.passed?'passes':'needs work')+'\nInput '+item.input+'\n'+(item.logs||[]).join('\n')+'\n'+(item.error?'Error '+item.error:'Returned '+JSON.stringify(item.actual)+(item.passed===null?'':'\nExpected '+JSON.stringify(item.expected)))).join('\n\n').slice(0,24000);
+    setTraceText(results.map((item,i)=>'Example '+(i+1)+' · '+(item.passed===null?'self-check':item.passed?'passes':'needs work')+'\nInput '+item.input+'\n'+(item.logs||[]).join('\n')+'\n'+(item.error?'Error '+item.error:'Returned '+JSON.stringify(item.actual)+(item.passed===null?'':'\nExpected '+JSON.stringify(item.expected)))).join('\n\n').slice(0,24000));
     status.textContent = passed+'/'+known.length+' known examples pass · published examples';
   }, 1500);
 }
@@ -1016,11 +1044,18 @@ try { const saved=localStorage.getItem('codefield.trace.enabled'); $('#trace-tog
 $('#trace-output').hidden = !$('#trace-toggle').checked;
 $('#quick-code').onclick = () => { if(state.problem) showStage('code', true); };
 $('#quick-learn').onclick = () => { if(state.problem) showStage('learn', true); };
+$('#playground-practice').onclick = event => {
+  if(!state.problem || !editor){event.preventDefault();return;}
+  store.drafts[draftKey()]=editor.getValue();
+  try { localStorage.setItem(storageKey,JSON.stringify(store)); }
+  catch { event.preventDefault(); toast('Could not save the draft. Copy it before leaving.',true); }
+};
 languageSelect.onchange = async () => {
   if (!state.problem) return;
   const problem = state.problem;
   const language = languageSelect.value;
   $('#voice-practice').href='./voice.html?problem='+encodeURIComponent(problem.slug)+'&language='+encodeURIComponent(language);
+  $('#playground-practice').href='./index.html?problem='+encodeURIComponent(problem.slug)+'&language='+encodeURIComponent(language)+(state.variant?'&variant=harder':'');
   cancelTrace();
   try { if(['ruby','python','javascript'].includes(language) && localStorage.getItem('codefield.trace.enabled')!=='0'){$('#trace-toggle').checked=true;$('#trace-output').hidden=false;} } catch {}
   if(['rust','cpp','csharp','java','crystal'].includes(language) && $('#trace-toggle').checked && !traceConsent.has(language)) {
@@ -1148,9 +1183,11 @@ initCoach({
 });
 
 const requested = new URLSearchParams(location.search).get('p');
+const requestedLanguage = new URLSearchParams(location.search).get('language');
 let last = null;
 try { last = JSON.parse(localStorage.getItem(lastKey) || 'null'); } catch {}
 if ((!requested || requested === last?.slug) && last?.language && tokenizers[last.language]) languageSelect.value = last.language;
+if(requestedLanguage && tokenizers[requestedLanguage]) languageSelect.value=requestedLanguage;
 try { if(['ruby','python','javascript'].includes(languageSelect.value) && localStorage.getItem('codefield.trace.enabled')===null){$('#trace-toggle').checked=true;$('#trace-output').hidden=false;} } catch {}
 if (requested || last?.slug) window.__initialSlug = requested || last.slug;
 if (last && (!requested || requested === last.slug)) { window.__resumeSlug = last.slug; window.__resumeStage = last.stage; }

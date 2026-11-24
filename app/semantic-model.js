@@ -15,6 +15,24 @@ export async function createRubyParser(bytes) {
 export function analyzeRuby(result) {
   const nodes=[],edges=[],env=new Map();
   const unknown={type:'Unknown',confidence:'Unknown'};
+  function arrayTransform(call,receiver){
+    if(!['map','select'].includes(call.name) || !Array.isArray(receiver.value) || receiver.value.length>100 || !receiver.value.every(Number.isSafeInteger))return null;
+    const block=call.block,params=block?.parameters?.parameters;
+    if(!params || params.requireds?.length!==1 || params.optionals?.length || params.rest || params.keywords?.length || params.block)return null;
+    const body=block.body?.body;
+    if(body?.length!==1)return null;
+    const expr=body[0],param=params.requireds[0].name,args=expr.arguments_?.arguments_;
+    if(expr.constructor.name!=='CallNode' || expr.receiver?.constructor.name!=='LocalVariableReadNode' || expr.receiver.name!==param || args?.length!==1 || args[0].constructor.name!=='IntegerNode')return null;
+    const right=Number(args[0].value),operator=expr.name;
+    if(!Number.isSafeInteger(right))return null;
+    const arithmetic={'+':(a,b)=>a+b,'-':(a,b)=>a-b,'*':(a,b)=>a*b};
+    const comparisons={'>':(a,b)=>a>b,'<':(a,b)=>a<b,'>=':(a,b)=>a>=b,'<=':(a,b)=>a<=b,'==':(a,b)=>a===b,'!=':(a,b)=>a!==b};
+    const fn=call.name==='map'?arithmetic[operator]:comparisons[operator];
+    if(!fn)return null;
+    const changes=receiver.value.map(input=>({input,result:fn(input,right)}));
+    if(call.name==='map' && !changes.every(item=>Number.isSafeInteger(item.result)))return null;
+    return {type:'Array',confidence:'Inferred',value:call.name==='map'?changes.map(item=>item.result):changes.filter(item=>item.result).map(item=>item.input),transformation:{method:call.name,parameter:param,expression:expr.location.slice(),input:receiver.value,steps:changes}};
+  }
   function visit(ast,scope='top level',bindings=env) {
     if(!ast) return null;
     const kind=ast.constructor.name, name=ast.name, source=ast.location.slice();
@@ -34,6 +52,7 @@ export function analyzeRuby(result) {
       const receiver=child(ast.receiver); if(receiver)inputs.push(receiver);
       inputs.push(...(ast.arguments_?.arguments_ || []).map(child));
       if(ast.block)inputs.push(visit(ast.block,scope+' / block',new Map(bindings)));
+      if(receiver && ast.block)fact=arrayTransform(ast,receiver) || fact;
       if(receiver && !ast.block && !ast.arguments_ && !ast.arguments){
         if(name==='new' && ast.receiver?.constructor.name==='ConstantReadNode' && ast.receiver.name==='Set')fact={type:'Set',confidence:'Inferred'};
         if(name==='chars' && receiver.type==='String')fact={type:'Array',confidence:'Inferred',value:typeof receiver.value==='string'?[...receiver.value]:undefined};
@@ -57,7 +76,7 @@ export function analyzeRuby(result) {
       inputs=ast.compactChildNodes().map(n=>visit(n,place,nested));
       if(!isolated)bindings.clear();
     }
-    const node={id:ast.nodeID,kind:kind.replace(/Node$/,''),name:name||'',scope,source,line:ast.location.startLine(),...fact};
+    const node={id:ast.nodeID,kind:kind.replace(/Node$/,''),name:name||'',scope,source,line:ast.location.startLine(),column:ast.location.startCodeUnitsColumn('utf-16'),...fact};
     for(const input of inputs.filter(Boolean))edges.push({from:input.id,to:node.id});
     nodes.push(node);
     if(kind==='LocalVariableWriteNode')bindings.set(name,node);
