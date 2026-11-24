@@ -19,7 +19,7 @@ function baseType(expr,vars,language){
  if(language==='cpp' && /^(?:std::)?string\(\s*"(?:\\.|[^"\\])*"\s*\)/.test(text))return {type:'CppString',length:text.match(/^(?:std::)?string\(\s*"(?:\\.|[^"\\])*"\s*\)/)[0].length};
  const string=text.match(/^(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/);
  if(string)return {type:language==='rust'?(string[0][0]==="'"?'char':'&str'):language==='cpp'?'CppStringLiteral':'String',length:string[0].length};
- if(language==='ruby'){const number=text.match(/^\d+(?:\.\d+)?\b/);if(number)return {type:number[0].includes('.')?'Float':'Integer',length:number[0].length}}
+ if(language==='ruby'||language==='python'){const number=text.match(/^-?\d+(?:\.\d+)?\b/);if(number)return {type:number[0].includes('.')?'Float':'Integer',length:number[0].length}}
  const array=text.match(/^\[[^\[\]\n]*\]/);
  if(array){const parts=array[0].slice(1,-1).trim();const allStrings=parts && /^(?:\s*(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')\s*,?\s*)+$/.test(parts);return {type:'Array',element:allStrings?'String':null,length:array[0].length}}
  const name=text.match(/^[A-Za-z_]\w*/);if(name && vars.has(name[0]))return {type:vars.get(name[0]),element:vars.elements?.get(name[0])||null,tentative:vars.tentative?.has(name[0])||false,length:name[0].length};

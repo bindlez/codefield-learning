@@ -1,7 +1,12 @@
 // Official references are loaded only when a learner requests a method.
 export function documentationUrl(language, type, method, owner) {
-  if (language === 'python') return 'https://docs.python.org/3/';
+  if (language === 'python') {
+    const target={String:'str',Array:'list',Hash:'dict',Set:'set'}[type];
+    return target ? 'https://docs.python.org/3/library/stdtypes.html#'+target+'.'+encodeURIComponent(method) : 'https://docs.python.org/3/';
+  }
   if (language === 'csharp') return 'https://learn.microsoft.com/en-us/dotnet/csharp/';
+  if (language === 'java') return 'https://docs.oracle.com/en/java/javase/';
+  if (language === 'crystal') return 'https://crystal-lang.org/api/';
   if (language === 'ruby') {
     const klass = /^[A-Z]\w*(?:::[A-Z]\w*)*$/.test(owner || type || '') ? (owner || type).replaceAll('::', '/') : null;
     if (!klass) return 'https://docs.ruby-lang.org/en/4.0/';

@@ -48,5 +48,5 @@ const guides={
 };
 export function methodGuide(language,name,doc){
  const guide=guides[language]?.[name];
- return {description:guide?.description||doc?.description||'A detailed guide is not available for this method yet. Open the language reference for its signature, behavior, arguments, return value, and examples.',example:guide?.example||doc?.example||null};
+ return {description:guide?.description||doc?.description||('Explore '+name+' in the official language reference for its behavior, arguments, and return value.'),example:guide?.example||doc?.example||null};
 }

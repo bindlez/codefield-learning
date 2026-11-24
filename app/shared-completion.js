@@ -5,6 +5,7 @@ import {cppMethods} from './cpp-methods.js';
 import {content} from './content.js';
 import {rubyMethods} from './ruby-catalog.js';
 import {pythonMethods,pythonGuide} from './python-methods.js';
+import {pythonDocs} from './python-catalog.js';
 
 export function sharedCompletion(language, source, caret, context, bindings = {}) {
   if (language === 'javascript') return javascriptCompletion({...context,source,caret,bindings});
@@ -22,6 +23,16 @@ export function sharedCompletion(language, source, caret, context, bindings = {}
 
 export async function completeWithRuntime(language,source,caret,context,bindings={}) {
   const fallback=sharedCompletion(language,source,caret,context,bindings);
+  if(language==='python'){
+    const inferred=inferContext(source,caret,language,context.receiver,context.chain);
+    const type=inferred?.type || bindings[context.receiver];
+    if(!type || inferred?.unknown)return fallback;
+    try{
+      const docs=await Promise.race([pythonDocs(type),new Promise(resolve=>setTimeout(()=>resolve(null),1000))]);
+      if(!docs)return fallback;
+      return Object.keys(docs).filter(name=>name.startsWith(context.prefix || '')).sort().map(label=>({label,insert:label,detail:docs[label].split('\n')[0] || type+' method',receiverType:type}));
+    }catch{return fallback;}
+  }
   if(language!=='ruby') return fallback;
   const inferred=inferContext(source,caret,language,context.receiver,context.chain);
   const type=inferred?.type || bindings[context.receiver];

@@ -11,6 +11,7 @@ import {completionContext} from '../src/completion.js';
 import {completeWithRuntime} from './shared-completion.js';
 import {content} from './content.js';
 import {methodGuide} from './method-guides.js';
+import {problemStarter} from './problem-starter.js';
 const $ = selector => document.querySelector(selector);
 const language = $('#language'), status = $('#status'), output = $('#output');
 const initialQuery=new URLSearchParams(location.search);
@@ -68,9 +69,8 @@ function confirmAction() {
 $('#voice-confirm').onclick=confirmAction; $('#voice-cancel').onclick=cancelConfirmation;
 function mount() { cancelPreview();controller?.abort(); controller=null; pendingAction=null; pendingMatches=null; confirmBox.hidden=true;
   editor?.destroy();
-  const snippets={ruby:'ruby',python:'python3',javascript:'javascript',rust:'rust',cpp:'cpp',csharp:'csharp',java:'java',crystal:'crystal'};
-  const initial=problem ? (practiceStore().drafts?.[problemDraftKey()] ?? (language.value==='javascript'?problem.starter:'') ?? problem.snippets?.[snippets[language.value]] ?? '') : (localStorage.getItem('codefield.voice.draft.'+language.value) || '');
-  editor = createEditor('#editor', {language:language.value,value:initial || problem?.snippets?.[snippets[language.value]] || '', label:'Voice workspace code', tokenize:tokenizers[language.value], autoIndent:true, onChange:value=>{controller?.abort();controller=null;saveDraft(value);queuePreview();}});
+  const initial=problem ? (practiceStore().drafts?.[problemDraftKey()] ?? problemStarter(problem,plan,language.value)) : (localStorage.getItem('codefield.voice.draft.'+language.value) || '');
+  editor = createEditor('#editor', {language:language.value,value:initial, label:'Voice workspace code', tokenize:tokenizers[language.value], autoIndent:true, onChange:value=>{controller?.abort();controller=null;saveDraft(value);queuePreview();}});
   localStorage.setItem('codefield.voice.language',language.value);
   queuePreview();
 }

@@ -9,7 +9,7 @@ import {practiceData, catalogIndex} from './practice-data.js';
 import {orderedPath,roadmaps} from './roadmaps.js';
 import {variants} from './variants.js';
 import {compiledScript} from './compiled-practice.js';
-import {compiledStarter} from './compiled-starter.js';
+import {problemStarter} from './problem-starter.js';
 const traceConsent = new Set();
 import {completeWithRuntime} from './shared-completion.js';
 import { createEditor } from './workspace-editor.js';
@@ -166,7 +166,7 @@ function switchVariant(enabled) {
 $('#variant-start').onclick=()=>switchVariant(true);
 $('#variant-exit').onclick=()=>switchVariant(false);
 function starter(problem) {
-  return (languageSelect.value === 'javascript' ? problem.starter : '') || problem.snippets?.[snippetKeys[languageSelect.value]] || compiledStarter(languageSelect.value,state.plan);
+  return problemStarter(problem,state.plan,languageSelect.value);
 }
 function renderProgress() {
   const solutions = store.solutions;

@@ -1,6 +1,8 @@
 import {initPlaygroundProblem} from './playground-problem.js';
 import {runProgram} from './languages.js';
 import {pythonMethods,pythonGuide} from './python-methods.js';
+import {officialGuide} from './official-guide.js';
+import {pythonDocs} from './python-catalog.js';
 import { createEditor } from './workspace-editor.js';
 import { tokenizeRuby } from '../src/languages/ruby.js';
 import { tokenizeJavaScript } from '../src/languages/javascript.js';
@@ -80,7 +82,7 @@ $('.output-panel').before(previewPanel);
 const codeMap=document.createElement('section');codeMap.className='panel code-map';codeMap.setAttribute('aria-label','Code map');
 codeMap.innerHTML='<div class="code-map-head"><div><span class="section-label">CODE MAP</span><p>Click a variable to explore methods or use ↗ to select its assignment. Types are inferred.</p></div><span class="code-map-badge">LIVE</span></div><div class="code-map-body"><div><span class="selected-caption">VARIABLES</span><div id="code-map-vars" class="code-map-chips"></div></div><div><span class="selected-caption">EXPRESSION PATH</span><div id="code-map-path" class="code-map-chips"></div></div></div>';
 const editorArea=document.createElement('div');editorArea.className='editor-area';$('.editor-panel').before(editorArea);editorArea.append(codeMap,$('.editor-panel'));
-$('.editor-area').before(previewPanel);
+editorArea.append(previewPanel);
 const alignSidePanels = () => {
   const gap = parseFloat(getComputedStyle(editorArea.parentElement).rowGap) || 0;
   const layout = document.querySelector('.layout');
@@ -91,7 +93,7 @@ const layoutObserver = new ResizeObserver(alignSidePanels);
 layoutObserver.observe(previewPanel);
 layoutObserver.observe(document.querySelector('.editor-panel'));
 alignSidePanels();
-editorArea.append($('.output-panel'));
+editorArea.prepend($('.output-panel'));
 const outputView = $('#output');
 const latestButton = document.createElement('button');
 latestButton.type = 'button';
@@ -149,7 +151,7 @@ function save(){try{localStorage.setItem(storageKey,JSON.stringify(state));$('#s
 function stop(){if(worker)worker.terminate();if(rustAbort)rustAbort.abort();rustAbort=null;worker=null;clearTimeout(timer);clearTimeout(inferTimer);selectionId++;for(const resolve of completionRequests.values())resolve({methods:[],receiverType:null});completionRequests.clear();ready=false;booting=false;pending=false;$('#run').disabled=false}
 function requestMethods({receiver,chain,staticType}){
  if(state.language==='rust')return Promise.resolve({methods:rustMethods[staticType]||[],receiverType:staticType||null});
- if(state.language==='python')return Promise.resolve({methods:pythonMethods[staticType]||[],receiverType:staticType||null});
+ if(state.language==='python')return Promise.race([pythonDocs(staticType),new Promise(resolve=>setTimeout(()=>resolve(null),1000))]).then(docs=>({methods:docs?Object.keys(docs):pythonMethods[staticType]||[],receiverType:staticType||null})).catch(()=>({methods:pythonMethods[staticType]||[],receiverType:staticType||null}));
  if(state.language==='csharp')return Promise.resolve({methods:[],receiverType:null});
  if(state.language==='cpp')return Promise.resolve({methods:cppMethods[staticType]||[],receiverType:staticType||null});
  if(!worker || !ready || $('#run').disabled){
@@ -252,6 +254,18 @@ function showMethodDetail(name,doc,scroll=true){
  for(const button of $('#selected-methods').querySelectorAll('button')){const active=button.dataset.method===name;button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',String(active))}
  const guide=state.language==='python'?pythonGuide(name):methodGuide(state.language,name,doc);
  const overview=document.createElement('div');overview.className='learning-card';const caption=document.createElement('span');caption.className='selected-caption';caption.textContent='METHOD';const title=document.createElement('strong');title.textContent=doc?.name||`${selectedType}#${name}`;const text=document.createElement('p');text.textContent=guide.description;overview.append(caption,title,text);detail.append(overview);
+ const selectedLanguage=state.language,selectedOwner=selectedOwners[name],selectedReceiverType=selectedType;
+ officialGuide(selectedLanguage,selectedReceiverType,name,selectedOwner).then(reference=>{
+  if(!reference || !overview.isConnected || state.language!==selectedLanguage || selectedType!==selectedReceiverType)return;
+  text.textContent=reference.description;
+  if(reference.signature){const signature=document.createElement('code');signature.textContent=reference.signature;overview.insertBefore(signature,text);}
+  const source=document.createElement('small');source.textContent=reference.source;overview.append(source);
+ });
+ if(selectedLanguage==='python')pythonDocs(selectedReceiverType).then(docs=>{
+  if(overview.isConnected && state.language===selectedLanguage && selectedType===selectedReceiverType && docs[name]){
+   text.textContent=docs[name];const source=document.createElement('small');source.textContent='Python built-in documentation';overview.append(source);
+  }
+ }).catch(()=>{});
  const examples=document.createElement('div');examples.className='learning-card';const exampleTitle=document.createElement('span');exampleTitle.className='selected-caption';exampleTitle.textContent='EXAMPLES';examples.append(exampleTitle);
  if(guide.example){const example=document.createElement('pre');example.textContent=guide.example;examples.append(example)}else{const empty=document.createElement('p');empty.textContent='Examples are available in the linked reference when documented by the language.';examples.append(empty)}
  if(doc){const button=document.createElement('button');button.className='text-button';button.type='button';button.textContent='Use example';button.onclick=()=>{editor.setValue(doc.insert);state.code[state.language]=doc.insert;save();editor.focus()};examples.append(button)}detail.append(examples);

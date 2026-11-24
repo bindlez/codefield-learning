@@ -11,6 +11,10 @@ import { createNotebook } from './notebook.js';
 import { runOnce } from './run-js.js';
 import { initLibrary } from './library.js';
 import {completeWithRuntime} from './shared-completion.js';
+import {lessonSolutions} from './lesson-solutions.js';
+import {cppLessonSolutions} from './lesson-cpp-solutions.js';
+import {rustLessonSolutions} from './lesson-rust-solutions.js';
+import {csharpLessonSolutions} from './lesson-csharp-solutions.js';
 
 const progressKey = 'codefield.learn.v1';
 const $ = selector => document.querySelector(selector);
@@ -359,13 +363,14 @@ function checkpointNode(lesson) {
   solutionBox.className = 'solution-box';
   solutionBox.hidden = true;
   const solutionPre = document.createElement('pre');
-  solutionPre.textContent = checkpoint.solution || 'No reference solution is provided for this checkpoint.';
+  const selectedSolution=()=>lessonLanguage==='javascript' ? checkpoint.solution : lessonLanguage==='cpp' ? cppLessonSolutions[lesson.id] : lessonLanguage==='rust' ? rustLessonSolutions[lesson.id] : lessonLanguage==='csharp' ? csharpLessonSolutions[lesson.id] : lessonSolutions[lesson.id]?.[lessonLanguage];
+  solutionPre.textContent = selectedSolution() || '';
   const useSolution = document.createElement('button');
   useSolution.type = 'button';
   useSolution.className = 'text-button';
   useSolution.textContent = 'Use as my draft';
   useSolution.onclick = () => {
-    checkpointEditor?.setValue(checkpoint.solution || '');
+    checkpointEditor?.setValue(selectedSolution() || '');
     saveDraft();
     toast('Reference solution copied into the editor. Read it, then change something.');
   };
@@ -377,8 +382,10 @@ function checkpointNode(lesson) {
     if (!editorHost.isConnected) return;
     checkpointEditor?.destroy();
     methodCard.hide();
-    solution.hidden = lessonLanguage !== 'javascript';
+    solution.hidden = !selectedSolution();
+    solutionPre.textContent=selectedSolution() || '';
     solutionBox.hidden = true;
+    solution.textContent = 'Show solution';
     checkpointEditor = createEditor(editorHost, {language:lessonLanguage,
       value: progress.drafts[draftId(lesson.id)] ?? (lessonLanguage === 'javascript' ? checkpoint.starter || '' : ''),
       label: `${lesson.title} checkpoint editor`,
