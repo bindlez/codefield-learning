@@ -1,5 +1,5 @@
 import {instrumentJavaScript, instrumentInterpreted} from './trace.js';
-import {runExamples, buildScript, describeExampleTrace} from './multilang-judge.js';
+import {runExamples, buildScript, describeExamplesTrace} from './multilang-judge.js';
 import {tokenizeRuby} from '../src/languages/ruby.js';
 import {tokenizePython} from '../src/languages/python.js';
 import {tokenizeRust} from '../src/languages/rust.js';
@@ -834,7 +834,7 @@ async function runTests() {
     } catch(error) {
       if (state.runToken === token) $('#results').textContent = error.message;
     } finally {
-      if (state.runToken === token) $('#test-run').disabled = false;
+      if (state.runToken === token) { $('#test-run').disabled = false; queueTrace(); }
     }
     return;
   }
@@ -881,6 +881,7 @@ async function runTests() {
     if(!state.variant) sprintSolved();
   }
   if (!report.ok && problem.solution) $('#test-reveal').hidden = false;
+  queueTrace();
 }
 
 function revealSolution() {
@@ -938,7 +939,7 @@ function queueTrace() {
   cancelTrace();
   const status = $('#trace-status'), output = $('#trace-output');
   if (!$('#trace-toggle').checked) {
-    status.textContent = 'Turn on live trace to follow the first example.';
+    status.textContent = 'Turn on live trace to follow the published examples.';
     return;
   }
   if (!state.problem || !editor || $('#problem-grid').hidden) return;
@@ -951,8 +952,7 @@ function queueTrace() {
       status.textContent='Enable Live Trace to send this example to '+(language==='rust'?'Rust Playground.':'Compiler Explorer.');
       return;
     }
-    const example = test && {...plan,tests:[test]};
-    const source = example && (remote ? compiledScript(language,code,example,true) : buildScript(language, instrumentInterpreted(language,code), example));
+    const source = test && (remote ? compiledScript(language,code,plan,true) : buildScript(language, instrumentInterpreted(language,code), plan));
     if (!source) {
       status.textContent = 'Line trace is not available for this language or problem shape yet.';
       output.textContent = 'Use the solution method and a problem with supported example types.';
@@ -967,9 +967,9 @@ function queueTrace() {
       const result = await runProgram(language, source, {signal:traceController.signal});
       if (version !== traceVersion) return;
       traceController = null;
-      const preview=describeExampleTrace(result,test,plan.returns?.type);
+      const preview=describeExamplesTrace(result,plan.tests,plan.returns?.type);
       output.textContent=preview.text;
-      status.textContent=preview.verdict+' · first example';
+      status.textContent=preview.verdict+' · published examples';
     },1500);
     return;
   }
@@ -987,7 +987,7 @@ function queueTrace() {
     status.textContent = 'Running the first example…';
     const {report, results} = await traceRunner.run({
       code:instrumented.code, functionName:plan.functionName, params:plan.params,
-      returns:plan.returns, tests:[{args:test.args, expected:test.known === false ? undefined : test.expected}]
+      returns:plan.returns, tests:plan.tests.map(item=>({args:item.args, expected:item.known === false ? undefined : item.expected}))
     });
     if (version !== traceVersion) return;
     traceRunner?.dispose(); traceRunner = null;
@@ -997,22 +997,22 @@ function queueTrace() {
       output.textContent = report.loadError || 'No example result yet.';
       return;
     }
-    const steps = row.logs?.length ? row.logs.join('\n') : instrumented.count ? 'No instrumented assignments ran.' : 'No simple assignments to show. Add console.log to inspect other steps.';
-    output.textContent = 'Input  ' + row.input + '\n\n' + steps + '\n\n' + (row.error ? 'Error  ' + row.error : 'Result  ' + JSON.stringify(row.actual) + (row.passed === null ? '' : row.passed ? '  ✓' : '  · expected ' + JSON.stringify(row.expected)));
-    status.textContent = 'First example · assignments and console output';
+    const known=results.filter(item=>item.passed!==null),passed=known.filter(item=>item.passed).length;
+    output.textContent=results.map((item,i)=>'Example '+(i+1)+' · '+(item.passed===null?'self-check':item.passed?'passes':'needs work')+'\nInput '+item.input+'\n'+(item.logs||[]).join('\n')+'\n'+(item.error?'Error '+item.error:'Returned '+JSON.stringify(item.actual)+(item.passed===null?'':'\nExpected '+JSON.stringify(item.expected)))).join('\n\n').slice(0,24000);
+    status.textContent = passed+'/'+known.length+' known examples pass · published examples';
   }, 1500);
 }
 $('#trace-toggle').onchange = () => {
   const lang=languageSelect.value;
   if ($('#trace-toggle').checked && ['cpp','rust','csharp','java','crystal'].includes(lang) && !traceConsent.has(lang)) {
-    if(confirm('Automatically send this solution and its first example to '+(lang==='rust'?'Rust Playground':'Compiler Explorer')+' after edits?')) traceConsent.add(lang);
+    if(confirm('Automatically send this solution and its published examples to '+(lang==='rust'?'Rust Playground':'Compiler Explorer')+' after edits?')) traceConsent.add(lang);
     else $('#trace-toggle').checked=false;
   }
   $('#trace-output').hidden=!$('#trace-toggle').checked;
   try { localStorage.setItem('codefield.trace.enabled',$('#trace-toggle').checked?'1':'0'); } catch {}
   queueTrace();
 };
-try { const saved=localStorage.getItem('codefield.trace.enabled'); $('#trace-toggle').checked = saved===null ? languageSelect.value==='ruby' : saved==='1'; } catch {}
+try { const saved=localStorage.getItem('codefield.trace.enabled'); $('#trace-toggle').checked = saved===null ? ['ruby','python','javascript'].includes(languageSelect.value) : saved==='1'; } catch {}
 $('#trace-output').hidden = !$('#trace-toggle').checked;
 $('#quick-code').onclick = () => { if(state.problem) showStage('code', true); };
 $('#quick-learn').onclick = () => { if(state.problem) showStage('learn', true); };
@@ -1022,7 +1022,11 @@ languageSelect.onchange = async () => {
   const language = languageSelect.value;
   $('#voice-practice').href='./voice.html?problem='+encodeURIComponent(problem.slug)+'&language='+encodeURIComponent(language);
   cancelTrace();
-  try { if(language==='ruby' && localStorage.getItem('codefield.trace.enabled')===null){$('#trace-toggle').checked=true;$('#trace-output').hidden=false;} } catch {}
+  try { if(['ruby','python','javascript'].includes(language) && localStorage.getItem('codefield.trace.enabled')!=='0'){$('#trace-toggle').checked=true;$('#trace-output').hidden=false;} } catch {}
+  if(['rust','cpp','csharp','java','crystal'].includes(language) && $('#trace-toggle').checked && !traceConsent.has(language)) {
+    if(confirm('Send this solution and its published examples to '+(language==='rust'?'Rust Playground':'Compiler Explorer')+' automatically after edits?')) traceConsent.add(language);
+    else {$('#trace-toggle').checked=false;$('#trace-output').hidden=true;}
+  }
   rememberProblem();
   state.runToken++;
   $('#test-run').disabled = false;
@@ -1147,7 +1151,7 @@ const requested = new URLSearchParams(location.search).get('p');
 let last = null;
 try { last = JSON.parse(localStorage.getItem(lastKey) || 'null'); } catch {}
 if ((!requested || requested === last?.slug) && last?.language && tokenizers[last.language]) languageSelect.value = last.language;
-try { if(languageSelect.value==='ruby' && localStorage.getItem('codefield.trace.enabled')===null){$('#trace-toggle').checked=true;$('#trace-output').hidden=false;} } catch {}
+try { if(['ruby','python','javascript'].includes(languageSelect.value) && localStorage.getItem('codefield.trace.enabled')===null){$('#trace-toggle').checked=true;$('#trace-output').hidden=false;} } catch {}
 if (requested || last?.slug) window.__initialSlug = requested || last.slug;
 if (last && (!requested || requested === last.slug)) { window.__resumeSlug = last.slug; window.__resumeStage = last.stage; }
 initLibrary({ getEditor: () => editor });

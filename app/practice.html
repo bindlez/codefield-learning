@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="./modern.css"></head>
 <body>
 <header class="top">
-  <a class="brand" href="./index.html" aria-label="Codefield home"><span class="brand-icon" aria-hidden="true">⌘</span> codefield <span class="badge">ALPHA 0.5.2</span></a>
+  <a class="brand" href="./index.html" aria-label="Codefield home"><span class="brand-icon" aria-hidden="true">⌘</span> codefield <span class="badge">ALPHA 0.5.3</span></a>
   <nav class="modes" aria-label="Workspace modes">
     <a href="./index.html">Playground</a>
     <a href="./beginner.html">Beginner</a><a href="./learn.html">Learn</a>
@@ -133,8 +133,8 @@
           <button id="test-reveal" class="text-button" type="button" hidden>Show a reference</button>
           <span class="run-hint" id="test-status">Runs in your browser · Ctrl + Enter</span>
         </div>
-        <p id="variant-description" role="status" hidden></p><div id="practice-editor"></div>
-        <section class="trace-panel" aria-label="Live execution trace"><div class="trace-head"><div><strong>Step by step</strong><span id="trace-status">Turn on live trace to follow the first example.</span></div><label><input type="checkbox" id="trace-toggle"> Live trace</label></div><pre id="trace-output" aria-live="polite" hidden>Your example’s inputs, observed assignments, and output appear here.</pre></section><div class="hints-panel" id="practice-hints" hidden></div>
+        <p id="variant-description" role="status" hidden></p>
+        <section class="trace-panel" aria-label="Live execution trace"><div class="trace-head"><div><strong>Live examples</strong><span id="trace-status">Your code and published examples run after you pause.</span></div><label><input type="checkbox" id="trace-toggle"> Auto-run</label></div><pre id="trace-output" aria-live="polite" hidden>Inputs, observed steps and results appear here.</pre></section><div id="practice-editor"></div><div class="hints-panel" id="practice-hints" hidden></div>
         <div class="reveal-solution" id="reveal-box" hidden></div>
         <div class="results" id="results" role="log" aria-live="polite">
           <div class="results-empty">Run the examples to see each case, then read the diff instead of guessing.</div>

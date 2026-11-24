@@ -1,5 +1,6 @@
 import {languages,tokenizers,languageOptions,runProgram} from './languages.js';
 import { createEditor } from './workspace-editor.js';
+import {completeWithRuntime} from './shared-completion.js';
 import { javascriptCompletion, guideFor } from './js-methods.js';
 import { inferContext } from '../src/inference.js';
 import { createMethodCard } from './method-card.js';
@@ -112,11 +113,7 @@ export function createNotebook({ onAsk } = {}) {
       label: `${notebookTitle} notebook editor`,
       tokenize: tokenizers[language],
       autoIndent: true,
-      complete: language === 'javascript' ? context => javascriptCompletion({
-        ...context,
-        source: editor ? editor.getValue() : '',
-        caret: editor ? editor.getCaret() : 0
-      }) : undefined,
+      complete: context => completeWithRuntime(language,editor?.getValue() || '',editor?.getCaret() || 0,context),
       onSelection: (value, parent) => {
         if (!editor || language !== 'javascript') return;
         const inferred = parent

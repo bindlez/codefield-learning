@@ -6,6 +6,7 @@ import {methodGuide} from './method-guides.js';
 import {tokenizers} from './languages.js';
 import {modelPanel} from './model-panel.js';
 import {rubyMethods} from './ruby-catalog.js';
+import {pythonGuide} from './python-methods.js';
 
 export function createEditor(target,options) {
   const host=typeof target==='string'?document.querySelector(target):target;
@@ -22,7 +23,7 @@ export function createEditor(target,options) {
     const method=doc?.name.split(/[.#]/).at(-1) || name;
     if(!method)return;
     if(doc)picker.value=doc.name;
-    const guide=methodGuide(language,method,doc);
+    const guide=language==='python'?pythonGuide(method):methodGuide(language,method,doc);
     detail.textContent=[doc?.name || method,guide.description,guide.example].filter(Boolean).join('\n');
   }
   let selectionRevision=0;
@@ -44,6 +45,7 @@ export function createEditor(target,options) {
   let model;
   const editor=mountInput(host,{...options,tokenize:tokenizers[language] || options.tokenize,
     complete:options.complete || (ctx=>completeWithRuntime(language,editor.getValue(),editor.getCaret(),ctx)),
+    onCompletionHighlight:item=>{if(item?.label && !options.playground){inspect(item.label);tools.open=true;}options.onCompletionHighlight?.(item);},
     onSelection:(name,parent)=>{inspect(name);listRubyMethods(name,parent);model?.select(name);options.onSelection?.(name,parent);},
     onChange:(value,info)=>{options.onChange?.(value,info);model?.schedule();if(tools.open) renderMap();},
     onSetValue:value=>{options.onSetValue?.(value);model?.schedule();}

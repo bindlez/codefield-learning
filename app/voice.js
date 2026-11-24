@@ -3,7 +3,7 @@ import {languages, languageOptions, tokenizers, runProgram} from './languages.js
 import {parseVoiceCommand, resolveVoiceSelection, findVoiceMatches} from '../src/voice-commands.js';
 import {practiceData, catalogIndex} from './practice-data.js';
 import {testsFromProblem} from './judge.js';
-import {buildScript, describeExampleTrace} from './multilang-judge.js';
+import {buildScript, describeExampleTrace, describeExamplesTrace} from './multilang-judge.js';
 import {instrumentInterpreted, instrumentJavaScript} from './trace.js';
 import {createJudgeRunner} from './judge.js';
 import {textOf} from './sanitize.js';
@@ -81,18 +81,29 @@ function updateKeyboardMode() {
 }
 function queuePreview() {
   cancelPreview();
-  if(!problem || language.value!=='ruby' || !plan?.tests?.length || !editor?.getValue().trim()) return;
-  const revision=previewRevision, code=editor.getValue(), test=plan.tests[0];
-  const source=buildScript('ruby',instrumentInterpreted('ruby',code),{...plan,tests:[test]});
+  const lang=language.value;
+  if(!['ruby','python','javascript'].includes(lang) || !editor?.getValue().trim()) return;
+  if(problem && !plan?.tests?.length){output.textContent='This problem has no runnable published examples.';return;}
+  const revision=previewRevision, code=editor.getValue();
+  const source=problem && lang!=='javascript'?buildScript(lang,instrumentInterpreted(lang,code),plan):code;
   if(!source){output.textContent='This problem shape needs a custom test call.';return;}
   output.textContent='Waiting for you to pause…';
   previewTimer=setTimeout(async()=>{
+    output.textContent=problem?'Checking examples…':'Running preview…';
+    if(problem && lang==='javascript'){
+      const runner=createJudgeRunner({timeoutMs:5000});previewRunner=runner;
+      const {report,results}=await runner.run({code:instrumentJavaScript(code).code,functionName:plan.functionName,params:plan.params,returns:plan.returns,tests:plan.tests.map(test=>({args:test.args,expected:test.known===false?undefined:test.expected}))});
+      if(revision!==previewRevision)return;
+      runner.dispose();previewRunner=null;
+      const known=results.filter(row=>row.passed!==null),passed=known.filter(row=>row.passed).length;
+      output.textContent=report.loadError || passed+'/'+known.length+' known examples pass\n\n'+results.map((row,i)=>'Example '+(i+1)+' · '+(row.passed===null?'self-check':row.passed?'passes':'needs work')+'\nInput '+row.input+'\n'+(row.logs||[]).join('\n')+'\n'+(row.error?'Error '+row.error:'Returned '+JSON.stringify(row.actual)+(row.passed===null?'':'\nExpected '+JSON.stringify(row.expected)))).join('\n\n');
+      return;
+    }
     previewController=new AbortController();
-    output.textContent='Tracing the first example…';
-    const result=await runProgram('ruby',source,{signal:previewController.signal});
+    const result=await runProgram(lang,source,{signal:previewController.signal});
     if(revision!==previewRevision)return;
-    const preview=describeExampleTrace(result,test,plan.returns?.type);
-    output.textContent=preview.verdict+' · first example\n\n'+preview.text;
+    if(problem){const preview=describeExamplesTrace(result,plan.tests,plan.returns?.type);output.textContent=preview.verdict+'\n\n'+preview.text;}
+    else output.textContent=[result.output,result.stderr,result.ok?result.value:result.error].filter(Boolean).join('\n') || '(no output)';
   },1600);
 }
 language.addEventListener('change', updateKeyboardMode);

@@ -19,6 +19,24 @@ export function describeExampleTrace(result, test, returnType) {
   return {verdict,text:['Input  '+JSON.stringify(test.args),lines.join('\n').trim(),summary,result.error].filter(Boolean).join('\n\n').slice(0,16000)};
 }
 
+export function describeExamplesTrace(result, tests, returnType) {
+  const lines=(result.output || '').split(/\r?\n/), results=[], trace=[];
+  for(const line of lines){
+    if(!line.startsWith('__CODEFIELD_CASE__')) { if(line)trace.push(line); continue; }
+    const test=tests[results.length];
+    if(!test)continue;
+    try {
+      const actual=JSON.parse(line.slice('__CODEFIELD_CASE__'.length));
+      const passed=test.known===false?null:compareValues(actual,test.expected,returnType);
+      results.push({actual,passed,expected:test.expected,input:test.args});
+    } catch { return {verdict:'Could not read example output',text:trace.join('\n')}; }
+  }
+  const known=results.filter(row=>row.passed!==null), passed=known.filter(row=>row.passed).length;
+  const verdict=result.ok ? `${passed}/${known.length} known examples pass${results.length<tests.length?' · incomplete':''}` : 'Execution failed';
+  const cases=results.map((row,i)=>`Example ${i+1} · ${row.passed===null?'self-check':row.passed?'passes':'needs work'}\nInput ${JSON.stringify(row.input)}\nReturned ${JSON.stringify(row.actual)}${row.passed===null?'':'\nExpected '+JSON.stringify(row.expected)}`).join('\n\n');
+  return {verdict,text:[cases,trace.join('\n'),result.error].filter(Boolean).join('\n\n').slice(0,24000),results};
+}
+
 export function buildScript(language, code, plan) {
   if (['rust','cpp','csharp','java','crystal'].includes(language)) return compiledScript(language,code,plan);
   if (!['python','ruby'].includes(language)) return null;

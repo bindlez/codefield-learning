@@ -3,9 +3,14 @@ const rubyTransitions={String:{chars:'Array',bytes:'Array',lines:'Array',split:'
 const rustTransitions={'&str':{to_string:'String',to_owned:'String',trim:'&str',trim_start:'&str',trim_end:'&str',to_uppercase:'String',to_lowercase:'String',chars:'Iterator',bytes:'Iterator',lines:'Iterator',split:'Iterator'},String:{as_str:'&str',trim:'&str',to_uppercase:'String',to_lowercase:'String',chars:'Iterator',bytes:'Iterator',lines:'Iterator',split:'Iterator',clone:'String'},HashSet:{insert:'bool',contains:'bool',remove:'bool',len:'usize',is_empty:'bool',iter:'Iterator',clone:'HashSet'},Vec:{len:'usize',is_empty:'bool',iter:'Iterator',iter_mut:'Iterator',clone:'Vec'},Array:{len:'usize',is_empty:'bool',iter:'Iterator',iter_mut:'Iterator'},Iterator:{map:'Iterator',filter:'Iterator',skip:'Iterator',take:'Iterator',enumerate:'Iterator',rev:'Iterator'}};
 const cppTransitions={CppString:{substr:'CppString',append:'CppString'},CppVector:{}};
 const jsTransitions={String:{trim:'String',toUpperCase:'String',toLowerCase:'String',split:'Array',slice:'String'},Array:{slice:'Array',concat:'Array',reverse:'Array',join:'String'},Set:{add:'Set',has:'boolean',delete:'boolean',values:'Iterator'},Map:{set:'Map',has:'boolean',delete:'boolean',values:'Iterator'}};
-const tables={ruby:rubyTransitions,rust:rustTransitions,javascript:jsTransitions,cpp:cppTransitions};
+const pythonTransitions={String:{upper:'String',lower:'String',strip:'String',split:'Array',replace:'String'},Array:{copy:'Array'},Hash:{keys:'Iterator',values:'Iterator',items:'Iterator',copy:'Hash'},Set:{copy:'Set',union:'Set',intersection:'Set',difference:'Set'}};
+const tables={ruby:rubyTransitions,rust:rustTransitions,javascript:jsTransitions,cpp:cppTransitions,python:pythonTransitions};
 function baseType(expr,vars,language){
  const text=expr.trim();
+ if(language==='python'){
+  const set=text.match(/^set\((?:[^()]|\([^()]*\))*\)/);if(set)return {type:'Set',length:set[0].length,tentative:true};
+  const dict=text.match(/^\{[^{}\n]*\}/);if(dict)return {type:dict[0].includes(':') || dict[0]==='{}'?'Hash':'Set',length:dict[0].length};
+ }
  if(language==='javascript'){const match=text.match(/^new\s+(Set|Map)\s*\((?:[^()]|\([^()]*\))*\)/);if(match)return {type:match[1],length:match[0].length,tentative:true}}
  if(language==='rust' && /^(?:std::collections::)?HashSet(?:::\<[^>]+\>)?::(?:new|with_capacity)\([^()]*\)/.test(text)){const match=text.match(/^(?:std::collections::)?HashSet(?:::\<[^>]+\>)?::(?:new|with_capacity)\([^()]*\)/);return {type:'HashSet',length:match[0].length,tentative:true}}
  if(language==='ruby' && /^(?:::)?Set\.new(?:\s*\([^()]*\))?/.test(text)){const match=text.match(/^(?:::)?Set\.new(?:\s*\([^()]*\))?/);return {type:'Set',length:match[0].length,tentative:true}}
