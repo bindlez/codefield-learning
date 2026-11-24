@@ -1,6 +1,8 @@
 // Short original guides. The linked official reference remains the authority.
 const guides={
   ruby:{
+    add:{description:'Adds the given object to a Set if it is not already present and returns the Set. The Set is modified in place. Use add? when you need to know whether an element was newly added.',example:'require "set"\nseen = Set.new\nseen.add(3)\nseen.include?(3) # => true'},
+    'add?':{description:'Adds an object if absent and returns the Set. Returns nil when the object is already present.',example:'require "set"\nseen = Set.new\nseen.add?(3) # => #<Set: {3}>\nseen.add?(3) # => nil'},
     chars:{description:'Turns a string into an array of its characters. The original string is unchanged. With a block, Ruby yields each character instead of returning the array.',example:'"hello".chars\n# => ["h", "e", "l", "l", "o"]\n\n"hi".chars.tally\n# => {"h"=>1, "i"=>1}'},
     chomp:{description:'Returns a copy of the string with its trailing record separator removed. With no argument, it removes one trailing newline sequence; it does not change the original string.',example:'"hello\\n".chomp\n# => "hello"\n\n"hello!".chomp("!")\n# => "hello"'},
     'chomp!':{description:'Removes the trailing record separator from the receiver itself. It returns the modified string, or nil when no change was needed.',example:'word = "hello\\n"\nword.chomp! # => "hello"\nword        # => "hello"'},

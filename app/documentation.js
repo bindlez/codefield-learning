@@ -9,7 +9,7 @@ export function documentationUrl(language, type, method, owner) {
     return `https://docs.ruby-lang.org/en/4.0/${klass}.html#method-i-${anchor}`;
   }
   if (language === 'rust') {
-    const page = {Vec:'vec/struct.Vec',String:'string/struct.String',Iterator:'iter/trait.Iterator',Array:'primitive.slice','&str':'primitive.str'}[type];
+    const page = {Vec:'vec/struct.Vec',String:'string/struct.String',Iterator:'iter/trait.Iterator',Array:'primitive.slice',HashSet:'collections/struct.HashSet','&str':'primitive.str'}[type];
     return page ? `https://doc.rust-lang.org/std/${page}.html#method.${encodeURIComponent(method)}` : 'https://doc.rust-lang.org/std/';
   }
   if (language === 'cpp') {

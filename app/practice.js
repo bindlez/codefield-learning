@@ -1,5 +1,5 @@
 import {instrumentJavaScript, instrumentInterpreted} from './trace.js';
-import {runExamples, buildScript} from './multilang-judge.js';
+import {runExamples, buildScript, describeExampleTrace} from './multilang-judge.js';
 import {tokenizeRuby} from '../src/languages/ruby.js';
 import {tokenizePython} from '../src/languages/python.js';
 import {tokenizeRust} from '../src/languages/rust.js';
@@ -11,7 +11,7 @@ import {variants} from './variants.js';
 import {compiledScript} from './compiled-practice.js';
 import {compiledStarter} from './compiled-starter.js';
 const traceConsent = new Set();
-import {sharedCompletion} from './shared-completion.js';
+import {completeWithRuntime} from './shared-completion.js';
 import { createEditor } from './workspace-editor.js';
 import { tokenizeJavaScript } from '../src/languages/javascript.js';
 import { createJudgeRunner, testsFromProblem } from './judge.js';
@@ -327,6 +327,7 @@ async function openProblem(slug, preloaded = null) {
   if (!slug || (slug === state.selected && state.problem)) return;
   if (sprintDeadline && sprintSlug !== slug) { clearInterval(sprintTimer); sprintDeadline=0; saveSprint(); $('#sprint-status').textContent='Timer stopped after changing problems.'; }
   cancelTrace();
+  $('#voice-practice').href='./voice.html?problem='+encodeURIComponent(slug)+'&language='+encodeURIComponent(languageSelect.value);
   state.variant = false;
   $('#variant-start').hidden = true; $('#variant-exit').hidden = true; $('#variant-description').hidden = true;
   state.selected = slug;
@@ -730,7 +731,7 @@ function mountEditor() {
     label: `${problem.title} solution editor`,
     tokenize: tokenizers[languageSelect.value],
     autoIndent: true,
-    complete: context => sharedCompletion(languageSelect.value,editor?.getValue() || '',editor?.getCaret() || 0,context,bindings),
+    complete: context => completeWithRuntime(languageSelect.value,editor?.getValue() || '',editor?.getCaret() || 0,context,bindings),
     onSelection: (value, parent) => {
       if (!editor || languageSelect.value !== 'javascript') return;
       const inferred = parent
@@ -966,9 +967,9 @@ function queueTrace() {
       const result = await runProgram(language, source, {signal:traceController.signal});
       if (version !== traceVersion) return;
       traceController = null;
-      output.textContent = 'Input  ' + JSON.stringify(test.args) + '\n\n' + [result.output,result.error].filter(Boolean).join('\n').slice(0,16000);
-      output.textContent=output.textContent.replaceAll('__CODEFIELD_CASE__','Returned  ');
-      status.textContent = result.ok ? (remote ? 'First example · observed initializers, output and return' : 'First example · executed lines and scalar locals') : 'Trace could not run';
+      const preview=describeExampleTrace(result,test,plan.returns?.type);
+      output.textContent=preview.text;
+      status.textContent=preview.verdict+' · first example';
     },1500);
     return;
   }
@@ -1011,7 +1012,7 @@ $('#trace-toggle').onchange = () => {
   try { localStorage.setItem('codefield.trace.enabled',$('#trace-toggle').checked?'1':'0'); } catch {}
   queueTrace();
 };
-try { $('#trace-toggle').checked = localStorage.getItem('codefield.trace.enabled') === '1'; } catch {}
+try { const saved=localStorage.getItem('codefield.trace.enabled'); $('#trace-toggle').checked = saved===null ? languageSelect.value==='ruby' : saved==='1'; } catch {}
 $('#trace-output').hidden = !$('#trace-toggle').checked;
 $('#quick-code').onclick = () => { if(state.problem) showStage('code', true); };
 $('#quick-learn').onclick = () => { if(state.problem) showStage('learn', true); };
@@ -1019,7 +1020,9 @@ languageSelect.onchange = async () => {
   if (!state.problem) return;
   const problem = state.problem;
   const language = languageSelect.value;
+  $('#voice-practice').href='./voice.html?problem='+encodeURIComponent(problem.slug)+'&language='+encodeURIComponent(language);
   cancelTrace();
+  try { if(language==='ruby' && localStorage.getItem('codefield.trace.enabled')===null){$('#trace-toggle').checked=true;$('#trace-output').hidden=false;} } catch {}
   rememberProblem();
   state.runToken++;
   $('#test-run').disabled = false;
@@ -1039,6 +1042,7 @@ languageSelect.onchange = async () => {
     if (store.drafts[draftKey()] === undefined && !editor.getValue()) editor.setValue(starter(problem));
   }
   $('#test-status').textContent = languageSelect.value === 'javascript' ? 'Run published examples' : 'Run as a program; add your own test calls';
+  queueTrace();
 };
 $('#save-approach').onclick = () => {
   if(!state.problem || !editor) return;
@@ -1143,6 +1147,7 @@ const requested = new URLSearchParams(location.search).get('p');
 let last = null;
 try { last = JSON.parse(localStorage.getItem(lastKey) || 'null'); } catch {}
 if ((!requested || requested === last?.slug) && last?.language && tokenizers[last.language]) languageSelect.value = last.language;
+try { if(languageSelect.value==='ruby' && localStorage.getItem('codefield.trace.enabled')===null){$('#trace-toggle').checked=true;$('#trace-output').hidden=false;} } catch {}
 if (requested || last?.slug) window.__initialSlug = requested || last.slug;
 if (last && (!requested || requested === last.slug)) { window.__resumeSlug = last.slug; window.__resumeStage = last.stage; }
 initLibrary({ getEditor: () => editor });

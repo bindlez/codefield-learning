@@ -1,11 +1,57 @@
 import {createEditor} from './workspace-editor.js';
 import {languages, languageOptions, tokenizers, runProgram} from './languages.js';
 import {parseVoiceCommand, resolveVoiceSelection, findVoiceMatches} from '../src/voice-commands.js';
+import {practiceData, catalogIndex} from './practice-data.js';
+import {testsFromProblem} from './judge.js';
+import {buildScript, describeExampleTrace} from './multilang-judge.js';
+import {instrumentInterpreted, instrumentJavaScript} from './trace.js';
+import {createJudgeRunner} from './judge.js';
+import {textOf} from './sanitize.js';
+import {completionContext} from '../src/completion.js';
+import {completeWithRuntime} from './shared-completion.js';
+import {content} from './content.js';
+import {methodGuide} from './method-guides.js';
 const $ = selector => document.querySelector(selector);
 const language = $('#language'), status = $('#status'), output = $('#output');
-languageOptions(language, localStorage.getItem('codefield.voice.language') || 'javascript');
+const initialQuery=new URLSearchParams(location.search);
+languageOptions(language, initialQuery.get('language') || localStorage.getItem('codefield.voice.language') || 'javascript');
 let editor, recognition, listening = false, wantsListening = false, restartTimer, controller, pendingAction = null, pendingSnapshot = null;
 let pendingMatches = null;
+let suggestions=null;
+let problem=null, plan=null, previewTimer, previewController, previewRunner, previewRevision=0, problemRevision=0;
+const problemBox=document.createElement('section');
+problemBox.className='voice-problem';
+problemBox.hidden=true;
+problemBox.innerHTML='<h2 id="voice-problem-title"></h2><p id="voice-problem-statement"></p><p id="voice-example"></p><a id="voice-return" href="./practice.html">Open problem workspace</a>';
+document.querySelector('.voice-grid aside').prepend(problemBox);
+const practiceKey='codefield.practice.v1';
+function problemDraftKey() { return language.value==='javascript'?problem.slug:problem.slug+':'+language.value; }
+function practiceStore() { try{return JSON.parse(localStorage.getItem(practiceKey) || '{}');}catch{return {};} }
+function saveDraft(value) {
+  try {
+    if(!problem) localStorage.setItem('codefield.voice.draft.'+language.value,value);
+    else { const store=practiceStore(); store.drafts??={}; store.drafts[problemDraftKey()]=value;localStorage.setItem(practiceKey,JSON.stringify(store)); }
+  } catch {status.textContent='Could not save the draft in this browser.';}
+}
+function cancelPreview() { clearTimeout(previewTimer); previewRevision++; previewController?.abort(); previewController=null; previewRunner?.dispose(); previewRunner=null; }
+async function loadProblem(slug) {
+  cancelPreview();
+  const revision=++problemRevision;
+  status.textContent='Loading problem…';
+  try {
+    const loaded=await practiceData('problem',{slug});
+    if(revision!==problemRevision)return;
+    problem=loaded;plan=testsFromProblem(problem);
+    $('#voice-problem-title').textContent=problem.title;
+    $('#voice-problem-statement').textContent=textOf(problem.content || '').slice(0,6000);
+    const example=problem.examples?.[0];
+    $('#voice-example').textContent=example?'Example: '+example.input+' → '+example.output:'No published example available.';
+    $('#voice-return').href='./practice.html?mode=problem&p='+encodeURIComponent(problem.slug);
+    problemBox.hidden=false;
+    const url=new URL(location.href);url.searchParams.set('problem',problem.slug);url.searchParams.set('language',language.value);history.replaceState(null,'',url);
+    mount();updateKeyboardMode();status.textContent='Problem loaded. Say read problem or start coding.';
+  } catch(error){if(revision===problemRevision)status.textContent='Could not load the problem: '+error.message;}
+}
 const remoteConsent = new Set();
 const confirmBox=document.createElement('div'); confirmBox.hidden=true;
 confirmBox.innerHTML='<button type="button" id="voice-confirm">Confirm</button> <button type="button" id="voice-cancel">Cancel</button>';
@@ -20,16 +66,34 @@ function confirmAction() {
   if(action==='run-remote') { remoteConsent.add(language.value); run(); }
 }
 $('#voice-confirm').onclick=confirmAction; $('#voice-cancel').onclick=cancelConfirmation;
-function mount() { controller?.abort(); controller=null; pendingAction=null; pendingMatches=null; confirmBox.hidden=true;
+function mount() { cancelPreview();controller?.abort(); controller=null; pendingAction=null; pendingMatches=null; confirmBox.hidden=true;
   editor?.destroy();
-  const key = 'codefield.voice.draft.' + language.value;
-  editor = createEditor('#editor', {language:language.value,value:localStorage.getItem(key) || '', label:'Voice workspace code', tokenize:tokenizers[language.value], autoIndent:true, onChange:value=>localStorage.setItem(key,value)});
+  const snippets={ruby:'ruby',python:'python3',javascript:'javascript',rust:'rust',cpp:'cpp',csharp:'csharp',java:'java',crystal:'crystal'};
+  const initial=problem ? (practiceStore().drafts?.[problemDraftKey()] ?? (language.value==='javascript'?problem.starter:'') ?? problem.snippets?.[snippets[language.value]] ?? '') : (localStorage.getItem('codefield.voice.draft.'+language.value) || '');
+  editor = createEditor('#editor', {language:language.value,value:initial || problem?.snippets?.[snippets[language.value]] || '', label:'Voice workspace code', tokenize:tokenizers[language.value], autoIndent:true, onChange:value=>{controller?.abort();controller=null;saveDraft(value);queuePreview();}});
   localStorage.setItem('codefield.voice.language',language.value);
+  queuePreview();
 }
 mount(); language.onchange = mount;
 function updateKeyboardMode() {
   const input = $('#editor textarea');
   if (input) input.setAttribute('inputmode', wantsListening ? 'none' : 'text');
+}
+function queuePreview() {
+  cancelPreview();
+  if(!problem || language.value!=='ruby' || !plan?.tests?.length || !editor?.getValue().trim()) return;
+  const revision=previewRevision, code=editor.getValue(), test=plan.tests[0];
+  const source=buildScript('ruby',instrumentInterpreted('ruby',code),{...plan,tests:[test]});
+  if(!source){output.textContent='This problem shape needs a custom test call.';return;}
+  output.textContent='Waiting for you to pause…';
+  previewTimer=setTimeout(async()=>{
+    previewController=new AbortController();
+    output.textContent='Tracing the first example…';
+    const result=await runProgram('ruby',source,{signal:previewController.signal});
+    if(revision!==previewRevision)return;
+    const preview=describeExampleTrace(result,test,plan.returns?.type);
+    output.textContent=preview.verdict+' · first example\n\n'+preview.text;
+  },1600);
 }
 language.addEventListener('change', updateKeyboardMode);
 const spokenFeedback = $('#spoken-feedback');
@@ -41,16 +105,49 @@ function announce(message) {
     speechSynthesis.speak(new SpeechSynthesisUtterance(message));
   }
 }
+function speak(text) {
+  if(window.speechSynthesis){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(text.slice(0,3000)));}
+  else status.textContent='Speech playback is unavailable in this browser.';
+}
+async function suggestMethods() {
+  const source=editor.getValue(),caret=editor.getCaret(),context=completionContext(source,caret);
+  if(!context){status.textContent='Say dot after a receiver to explore its methods.';return;}
+  status.textContent='Finding methods…';
+  const items=await completeWithRuntime(language.value,source,caret,context);
+  if(source!==editor.getValue() || caret!==editor.getCaret())return;
+  suggestions={source,caret,prefix:context.prefix,items:items.slice(0,10)};
+  const message=suggestions.items.length ? suggestions.items.map((item,i)=>(i+1)+' '+item.label).join(' · ') : 'No methods found for this expression.';
+  status.textContent=message;
+  if(spokenFeedback.checked) speak(message);
+}
 async function run() {
   if (['rust','cpp','csharp','java','crystal'].includes(language.value) && !remoteConsent.has(language.value)) { askConfirmation('run-remote','This sends your code to '+(language.value==='rust'?'Rust Playground':'Compiler Explorer')+'. Say “confirm” to run or “cancel”.'); return; }
-  controller?.abort(); controller = new AbortController();
+  cancelPreview();controller?.abort(); controller = new AbortController();
   const current = controller;
   output.textContent = 'Running…';
-  const result = await runProgram(language.value, editor.getValue(), {signal:current.signal});
+  if(problem && plan?.tests?.length && language.value==='javascript'){
+    const runner=createJudgeRunner({timeoutMs:5000});
+    previewRunner=runner;
+    const {report,results}=await runner.run({code:instrumentJavaScript(editor.getValue()).code,functionName:plan.functionName,params:plan.params,returns:plan.returns,tests:plan.tests.map(test=>({args:test.args,expected:test.known===false?undefined:test.expected}))});
+    if(controller!==current){runner.dispose();return;}
+    runner.dispose();previewRunner=null;
+    output.textContent=report.loadError || results.map(row=>'Input '+row.input+'\n'+(row.error?'Error '+row.error:'Returned '+JSON.stringify(row.actual)+(row.passed===null?' · self-check':row.passed?' · passes':' · expected '+JSON.stringify(row.expected)))).join('\n\n');
+    return;
+  }
+  const source=problem && plan?.tests?.length ? buildScript(language.value,editor.getValue(),plan) : null;
+  const result = await runProgram(language.value, source || editor.getValue(), {signal:current.signal});
   if (controller !== current) return;
+  if(source && result.ok){
+    const rows=(result.output || '').split(/\r?\n/).filter(line=>line.startsWith('__CODEFIELD_CASE__'));
+    if(rows.length===plan.tests.length){
+      output.textContent=rows.map((line,i)=>describeExampleTrace({ok:true,output:line},plan.tests[i],plan.returns?.type)).map(p=>p.verdict+'\n'+p.text).join('\n\n');
+      return;
+    }
+  }
   output.textContent = [result.output, result.stderr, result.ok ? result.value : result.error].filter(value=>value && value !== 'undefined').join('\n') || '(no output)';
 }
 $('#run').onclick=run;
+if(initialQuery.get('problem')) loadProblem(initialQuery.get('problem'));
 const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (!Speech) { $('#microphone').disabled=true; status.textContent='Speech recognition is unavailable in this browser. You can still use the editor and run code.'; }
 else {
@@ -59,6 +156,30 @@ else {
     for (let i=event.resultIndex;i<event.results.length;i++) {
       if (!event.results[i].isFinal) { $('#transcript').textContent=event.results[i][0].transcript; continue; }
       const text=event.results[i][0].transcript.trim(); $('#transcript').textContent=text;
+      if(/^read (problem|statement)[.!]?$/i.test(text)){if(problem)speak(problem.title+'. '+textOf(problem.content || ''));else status.textContent='Open a practice problem first.';continue;}
+      if(/^read example[.!]?$/i.test(text)){if(problem)speak($('#voice-example').textContent);else status.textContent='Open a practice problem first.';continue;}
+      if(/^read (code|current code)[.!]?$/i.test(text)){speak(editor.getValue());continue;}
+      if(/^next problem[.!]?$/i.test(text)){
+        const current=problem?.slug;
+        catalogIndex().then(items=>{const candidates=items.filter(item=>!item.paidOnly && item.slug!==current && !practiceStore().attempts?.[item.slug]?.passed);if(candidates.length)loadProblem(candidates[0].slug);else status.textContent='No further problem found.';}).catch(error=>{status.textContent=error.message;});
+        continue;
+      }
+      if(/^(suggest|show) methods[.!]?$/i.test(text)){suggestMethods();continue;}
+      const useSuggestion=/^(?:use|insert) (?:suggestion )?(\d+|first|second|third|fourth|fifth)[.!]?$/i.exec(text);
+      if(useSuggestion && suggestions){
+        const n=({first:1,second:2,third:3,fourth:4,fifth:5}[useSuggestion[1].toLowerCase()] || Number(useSuggestion[1]))-1;
+        const selected=suggestions.items[n];
+        if(suggestions.source!==editor.getValue() || suggestions.caret!==editor.getCaret())status.textContent='Code or cursor changed. Ask for suggestions again.';
+        else if(!selected)status.textContent='Choose a listed suggestion.';
+        else {editor.selectRange(suggestions.caret-suggestions.prefix.length,suggestions.caret);editor.insert(selected.insert || selected.label);status.textContent='Inserted '+selected.label;}
+        suggestions=null;continue;
+      }
+      const explain=/^(?:explain|describe) (?:method )?([\w!?]+)[.!]?$/i.exec(text);
+      if(explain){
+        const method=explain[1],doc=(content[language.value]?.docs || []).find(d=>d.name.split(/[.#]/).at(-1)===method);
+        const guide=methodGuide(language.value,method,doc);const message=method+'. '+guide.description+(guide.example?' Example: '+guide.example:'');
+        status.textContent=message;if(spokenFeedback.checked)speak(message);continue;
+      }
       const choice=/^(?:choose|select) (\d+|first|second|third|fourth|fifth)[.!]?$/i.exec(text);
       if(choice && pendingMatches){
         const index=({first:1,second:2,third:3,fourth:4,fifth:5}[choice[1].toLowerCase()] || Number(choice[1]))-1;
@@ -118,7 +239,7 @@ else {
         language.value = {'c plus plus':'cpp','c sharp':'csharp'}[spoken] || spoken;
         mount(); updateKeyboardMode(); announce('Language changed to '+languages[language.value]+'.');
       }
-      else if(/^dot[.!]?$/i.test(text)) { editor.insert('.'); status.textContent='Inserted dot. Say insert followed by a method name.'; }
+      else if(/^dot[.!]?$/i.test(text)) { editor.insert('.'); suggestMethods(); }
       else if(/^insert\s+/i.test(text)) { editor.insert(text.replace(/^insert\s+/i,'')); status.textContent='Inserted dictated text.'; }
       else status.textContent='Command not recognized. Say “insert” before literal text.';
     }

@@ -35,6 +35,7 @@ export function analyzeRuby(result) {
       inputs.push(...(ast.arguments_?.arguments_ || []).map(child));
       if(ast.block)inputs.push(visit(ast.block,scope+' / block',new Map(bindings)));
       if(receiver && !ast.block && !ast.arguments_ && !ast.arguments){
+        if(name==='new' && ast.receiver?.constructor.name==='ConstantReadNode' && ast.receiver.name==='Set')fact={type:'Set',confidence:'Inferred'};
         if(name==='chars' && receiver.type==='String')fact={type:'Array',confidence:'Inferred',value:typeof receiver.value==='string'?[...receiver.value]:undefined};
         if(name==='tally' && receiver.type==='Array'){
           fact={type:'Hash',confidence:'Inferred'};

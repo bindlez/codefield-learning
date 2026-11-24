@@ -9,10 +9,11 @@ async function boot() {
   vm.eval(`require 'js'
 require 'json'
 require 'stringio'
+require 'set'
 $codefield_binding = TOPLEVEL_BINDING
 
 def __codefield_type_methods(type)
-  klass = { 'String'=>String, 'Array'=>Array, 'Hash'=>Hash, 'Enumerator'=>Enumerator, 'Integer'=>Integer, 'Float'=>Float }[type]
+  klass = { 'String'=>String, 'Array'=>Array, 'Hash'=>Hash, 'Set'=>Set, 'Enumerator'=>Enumerator, 'Integer'=>Integer, 'Float'=>Float, 'Range'=>Range, 'Regexp'=>Regexp, 'Symbol'=>Symbol, 'Time'=>Time, 'TrueClass'=>TrueClass, 'FalseClass'=>FalseClass, 'NilClass'=>NilClass }[type]
   return [].to_json unless klass
   methods = klass.public_instance_methods
   owners = methods.to_h { |name| [name.to_s, klass.instance_method(name).owner.name] }
@@ -45,7 +46,8 @@ def __codefield_complete(receiver, chain_json)
     Array => { 'tally'=>Hash, 'reverse'=>Array, 'compact'=>Array, 'flatten'=>Array,
       'uniq'=>Array, 'sort'=>Array, 'shuffle'=>Array, 'to_a'=>Array, 'to_s'=>String },
     Hash => { 'keys'=>Array, 'values'=>Array, 'to_a'=>Array, 'to_s'=>String,
-      'invert'=>Hash, 'compact'=>Hash }
+      'invert'=>Hash, 'compact'=>Hash },
+    Set => { 'add'=>Set, 'to_set'=>Set, 'to_a'=>Array, 'union'=>Set, 'intersection'=>Set }
   }
   chain.each do |method|
     klass = transitions.fetch(klass, {})[method]

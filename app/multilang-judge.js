@@ -2,6 +2,23 @@ import {compareValues} from './judge.js';
 import {runProgram} from './languages.js';
 import {compiledScript} from './compiled-practice.js';
 
+export function describeExampleTrace(result, test, returnType) {
+  const lines=(result.output || '').split(/\r?\n/);
+  const marker=lines.findIndex(line=>line.startsWith('__CODEFIELD_CASE__'));
+  let verdict=result.ok?'Example ran':'Execution failed';
+  let summary='';
+  if(marker>=0){
+    try {
+      const actual=JSON.parse(lines[marker].slice('__CODEFIELD_CASE__'.length));
+      const passed=test.known===false ? null : compareValues(actual,test.expected,returnType);
+      verdict=passed===null?'Self-check':passed?'Example passes ✓':'Example does not pass';
+      summary='Returned  '+JSON.stringify(actual)+(passed===null?'':'\nExpected  '+JSON.stringify(test.expected));
+      lines.splice(marker,1);
+    } catch { verdict='Could not read the returned value'; }
+  }
+  return {verdict,text:['Input  '+JSON.stringify(test.args),lines.join('\n').trim(),summary,result.error].filter(Boolean).join('\n\n').slice(0,16000)};
+}
+
 export function buildScript(language, code, plan) {
   if (['rust','cpp','csharp','java','crystal'].includes(language)) return compiledScript(language,code,plan);
   if (!['python','ruby'].includes(language)) return null;
