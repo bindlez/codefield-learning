@@ -1,4 +1,4 @@
-export function modelPanel(host,language,getEditor,onInspect,expanded=false) {
+export function modelPanel(host,language,getEditor,onInspect,expanded=false,compact=false) {
   const panel=document.createElement('details');
   panel.className='shared-editor-tools semantic-panel'; panel.open=expanded;
   panel.innerHTML='<summary>Code Model</summary><div class="model-items"></div><pre class="model-detail" aria-live="polite"></pre><div class="model-transform" aria-label="Transformation steps"></div>';
@@ -30,12 +30,20 @@ export function modelPanel(host,language,getEditor,onInspect,expanded=false) {
       worker.onmessage=({data})=>{
         if(data.id!==revision)return;
         graph=data;items.replaceChildren();detail.textContent='';
-        for(const node of graph.nodes.filter(n=>!['LocalVariableRead','String','Integer','Parameters','ErrorRecovery','Statements','Program'].includes(n.kind)).slice(-100)){
+        const visible=graph.nodes.filter(n=>{
+          if(['LocalVariableRead','String','Integer','Parameters','ErrorRecovery','Statements','Program'].includes(n.kind))return false;
+          if(!compact)return true;
+          return n.kind==='Variable' || /VariableWrite|Parameter|Def/.test(n.kind) && n.kind!=='BlockParameters' ||
+            n.kind==='Call' && /^[A-Za-z_]\w*[!?=]?$/.test(n.name || '');
+        }).slice(-100);
+        for(const node of visible){
           const button=document.createElement('button');button.type='button';button.textContent=(node.name||node.kind)+' · '+node.type;
           button.onclick=()=>{display(node);if(node.line){const ed=getEditor(),lines=ed.getValue().split('\n');const offset=lines.slice(0,node.line-1).reduce((sum,s)=>sum+s.length+1,0);const pos=offset+(node.column || 0);if(ed.getValue().slice(pos,pos+node.source.length)===node.source)ed.selectRange(pos,pos+node.source.length);}};
           items.append(button);
         }
-        display((selected && graph.nodes.findLast(n=>n.name===selected))||graph.nodes.at(-1));
+        const current=(selected && graph.nodes.findLast(n=>n.name===selected)) || (!compact && graph.nodes.at(-1));
+        if(current)display(current);
+        else if(compact && visible.length)detail.textContent='Select a symbol to inspect it.';
         if(data.diagnostics.length)detail.textContent=data.diagnostics.join('\n')+'\n'+detail.textContent;
         if(!graph.nodes.length && !data.diagnostics.length)detail.textContent='Write an assignment to inspect it.';
       };

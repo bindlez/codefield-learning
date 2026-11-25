@@ -188,7 +188,7 @@ function itemFor(entry, owner) {
 
 /** Build completion items for the current receiver, using inference, then parameter bindings. */
 export function javascriptCompletion({ source = '', caret = source.length, receiver = '', chain = [], prefix = '', bindings = {} } = {}) {
-  const inferred = inferContext(source, caret, 'javascript', receiver, chain);
+  const inferred = inferContext(source, caret, 'javascript', receiver, chain, bindings);
   const globalOwner = !chain.length && jsGlobals[receiver] ? receiver : null;
   const owner = globalOwner || inferred?.type || (chain.length ? null : bindings[receiver]);
   if (!owner) return [];

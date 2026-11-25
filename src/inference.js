@@ -48,8 +48,8 @@ export function inferExpression(expression,vars=new Map(),language='ruby'){
  }
  return {type,element,known:text.slice(0,consumed),uncertain,unknown};
 }
-export function inferVariables(source,caret=source.length,language='ruby'){
- const vars=new Map();
+export function inferVariables(source,caret=source.length,language='ruby',bindings={}){
+ const vars=new Map(Object.entries(bindings));
  Object.defineProperty(vars,'elements',{value:new Map()});
  Object.defineProperty(vars,'tentative',{value:new Set()});
  const lines=[];let current='',quote='',escaped=false;
@@ -77,8 +77,8 @@ export function inferVariables(source,caret=source.length,language='ruby'){
  }
  return vars;
 }
-export function inferContext(source,caret,language,receiver,chain=[]){
- const vars=inferVariables(source,caret,language);
+export function inferContext(source,caret,language,receiver,chain=[],bindings={}){
+ const vars=inferVariables(source,caret,language,bindings);
  const expr=receiver+chain.map(name=>name.startsWith('[')?name:'.'+name).join('');
  return inferExpression(expr,vars,language);
 }

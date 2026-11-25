@@ -104,11 +104,11 @@ end
 
 // The scaffolding executes outside the traced source file, keeping line numbers
 // aligned with the editor even when LeetCode supplies commented node definitions.
-export function interpretedExample(language,source,plan,{trace=true}={}) {
+export function interpretedExample(language,source,plan,{trace=true,instrument=instrumentInterpreted}={}) {
   if (!['ruby','python'].includes(language) || !plan?.tests?.length || !Array.isArray(plan.params)) return null;
   const python=language==='python';
   const prelude=python?'from typing import *\nfrom collections import *\n':'';
-  const traced=trace?instrumentInterpreted(language,source):source;
+  const traced=trace?instrument(language,source):source;
   const types=plan.params.map(p=>p.type),ret=plan.returns?.type || '';
   const treeOrList=t=>t==='TreeNode' || t==='ListNode';
   const usesNodes=[...types,ret].some(treeOrList);

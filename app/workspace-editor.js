@@ -5,7 +5,6 @@ import {content} from './content.js';
 import {methodGuide} from './method-guides.js';
 import {tokenizers} from './languages.js';
 import {modelPanel} from './model-panel.js';
-import {rubyMethods} from './ruby-catalog.js';
 import {officialGuide} from './official-guide.js';
 import {documentationUrl} from './documentation.js';
 import {pythonDocs} from './python-catalog.js';
@@ -28,7 +27,8 @@ export function createEditor(target,options) {
   for(const doc of docs) picker.add(new Option(doc.name,doc.name));
   let referenceType='';
   let detailRevision=0;
-  function inspect(name) {
+  function inspect(name,completionItem) {
+    if(typeof name!=='string' || /\s/.test(name) || name.length>80)return;
     const doc=docs.find(d=>d.name===name || d.name.split(/[.#]/).at(-1)===name);
     const method=doc?.name.split(/[.#]/).at(-1) || name;
     if(!method)return;
@@ -36,13 +36,16 @@ export function createEditor(target,options) {
     const context=completionContext(editor.getValue(),editor.getCaret()) || previewContext;
     preview.textContent=previewText(methodPreview({source:editor.getValue(),caret:editor.getCaret(),language,receiver:context?.receiver,chain:context?.chain || [],method}));
     if(doc)picker.value=doc.name;
-    const guide=language==='python'?pythonGuide(method):methodGuide(language,method,doc);
+    const guide=completionItem?.preview || (language==='python'?pythonGuide(method):methodGuide(language,method,doc));
+    let signature=guide.signature || doc?.name || method,description=guide.description || '',example=guide.example || '';
     detail.textContent=[doc?.name || method,guide.description,guide.example].filter(Boolean).join('\n');
     tools.querySelector('.editor-reference a').href=documentationUrl(language,referenceType,method);
+    const publish=()=>options.onReferenceUpdate?.({method,type:referenceType,signature,description,example,preview:preview.textContent,url:tools.querySelector('.editor-reference a').href});
+    publish();
     officialGuide(language,referenceType,method).then(reference=>{
-      if(reference && currentDetail===detailRevision && detail.isConnected)detail.textContent=[reference.signature || method,reference.description,reference.source].filter(Boolean).join('\n');
+      if(reference && currentDetail===detailRevision && detail.isConnected){signature=reference.signature || signature;description=reference.description || description;detail.textContent=[signature,description,reference.source].filter(Boolean).join('\n');publish();}
     });
-    if(language==='python' && referenceType)pythonDocs(referenceType).then(docs=>{if(docs[method] && currentDetail===detailRevision && detail.isConnected)detail.textContent=method+'\n'+docs[method]+'\nPython built-in documentation';}).catch(()=>{});
+    if(language==='python' && referenceType)pythonDocs(referenceType).then(docs=>{if(docs[method] && currentDetail===detailRevision && detail.isConnected){description=docs[method];detail.textContent=method+'\n'+description+'\nPython built-in documentation';publish();}}).catch(()=>{});
   }
   let selectionRevision=0;
   async function listMethods(name,parent) {
@@ -50,21 +53,31 @@ export function createEditor(target,options) {
     const code=editor.getValue(),caret=editor.getCaret();
     const receiver=parent?.receiver || name;
     const inferred=inferContext(code,caret,language,receiver,parent?.chain || []);
-    if(!inferred || inferred.unknown)return;
-    referenceType=inferred.type;
+    const bindings=options.getBindings?.() || {};
     try {
-      const methods=language==='ruby' ? await rubyMethods(inferred.type) : (await completeWithRuntime(language,code,caret,{receiver,chain:parent?.chain || [],prefix:''})).map(item=>item.label);
+      const completions=await completeWithRuntime(language,code,caret,{receiver,chain:parent?.chain || [],prefix:''},bindings);
+      const methods=completions.map(item=>item.label);
       if(revision!==selectionRevision || code!==editor.getValue() || !host.isConnected)return;
       if(!methods.length)return;
-      picker.replaceChildren(new Option(inferred.type+' methods',''),...methods.filter(n=>/^[a-zA-Z_]/.test(n)).map(n=>new Option(n,n)));
-      detail.textContent='Select a '+inferred.type+' method to explore it.';
+      referenceType=completions[0]?.receiverType || inferred?.type || bindings[receiver] || '';
+      picker.replaceChildren(new Option((referenceType || 'Available')+' methods',''),...methods.filter(n=>/^[a-zA-Z_]/.test(n)).map(n=>new Option(n,n)));
+      detail.textContent='Select a '+(referenceType || 'matching')+' method to explore it.';
+      options.onReferenceMethods?.(completions,{receiver,chain:parent?.chain || []});
     } catch { /* Keep the local reference available if Ruby cannot load. */ }
   }
   picker.onchange=()=>inspect(picker.value);
   let model;
   const editor=mountInput(host,{...options,tokenize:tokenizers[language] || options.tokenize,
-    complete:options.complete || (ctx=>completeWithRuntime(language,editor.getValue(),editor.getCaret(),ctx)),
-    onCompletionHighlight:item=>{if(item?.label && !options.playground){referenceType=item.receiverType || referenceType;inspect(item.label);tools.open=true;}options.onCompletionHighlight?.(item);},
+    complete:options.complete || (async ctx=>{
+      const items=await completeWithRuntime(language,editor.getValue(),editor.getCaret(),ctx,options.getBindings?.() || {});
+      if(!options.completionOverlay)return items;
+      return items.map(item=>{
+        const doc=docs.find(entry=>entry.name.split(/[.#]/).at(-1)===item.label);
+        const guide=language==='python'?pythonGuide(item.label):methodGuide(language,item.label,doc);
+        return {...item,detail:item.preview?.description || (language==='ruby'?guide.description:item.detail || guide.description)};
+      });
+    }),
+    onCompletionHighlight:item=>{if(item?.label && !options.playground){referenceType=item.receiverType || item.preview?.owner || referenceType;inspect(item.label,item);if(!options.onReferenceUpdate)tools.open=true;}options.onCompletionHighlight?.(item);},
     onSelection:(name,parent)=>{previewContext=parent || {receiver:name,chain:[]};inspect(name);listMethods(name,parent);model?.select(name);options.onSelection?.(name,parent);},
     onChange:(value,info)=>{previewContext=null;preview.textContent='Highlight a method to preview the updated code.';options.onChange?.(value,info);model?.schedule();if(tools.open) renderMap();},
     onSetValue:value=>{previewContext=null;preview.textContent='Highlight a method to preview the updated code.';options.onSetValue?.(value);model?.schedule();}
@@ -79,7 +92,7 @@ export function createEditor(target,options) {
   }
   if(!options.minimal && !options.playground) host.before(tools);
   const removeFiles = options.minimal ? () => {} : mountFileManager(host, language, () => editor);
-  if(!options.minimal) model=modelPanel(host,language,()=>editor,name=>{inspect(name);if(!options.playground)tools.open=true;},!!options.modelOpen);
+  if(!options.minimal) model=modelPanel(host,language,()=>editor,name=>{inspect(name);if(!options.playground && !options.onReferenceUpdate)tools.open=true;},!!options.modelOpen,!!options.compactModel);
   if(options.modelOpen) model?.schedule();
   tools.ontoggle=()=>{if(tools.open) renderMap();};
   const [find,indent,undo,redo,download]=tools.querySelectorAll('.edit-actions button');
@@ -91,6 +104,7 @@ export function createEditor(target,options) {
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
   const destroy=editor.destroy;
+  editor.inspectMethod=(name,type,item)=>{referenceType=type || referenceType;inspect(name,item);};
   editor.destroy=()=>{selectionRevision++;detailRevision++;removeFiles();tools.remove();model?.destroy();destroy();};
   return editor;
 }

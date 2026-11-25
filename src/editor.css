@@ -30,3 +30,4 @@
 .code-editor{resize:vertical;min-height:12rem;max-height:70vh}
 /* Suggestions occupy their own row instead of covering the code. */
 .code-completions{position:relative;left:auto;top:auto;width:auto;max-height:12rem;margin:0;border-radius:0;border-width:1px 0 0;box-shadow:none;background:#1b2433;}
+.code-editor--completion-overlay .code-completions{position:absolute;z-index:6;max-height:180px;margin:0;border:1px solid #718199;border-radius:7px;box-shadow:0 8px 24px #000b;background:#202b39}

@@ -1,4 +1,4 @@
-import {inferContext} from '../src/inference.js';
+import {inferContext,inferExpression} from '../src/inference.js';
 import {javascriptCompletion} from './js-methods.js';
 import {rustMethods} from './rust-methods.js';
 import {cppMethods} from './cpp-methods.js';
@@ -7,11 +7,20 @@ import {rubyMethods} from './ruby-catalog.js';
 import {pythonMethods,pythonGuide} from './python-methods.js';
 import {pythonDocs} from './python-catalog.js';
 
+function resolveContext(language,source,caret,context,bindings) {
+  const inferred=inferContext(source,caret,language,context.receiver,context.chain,bindings);
+  if (inferred && !inferred.unknown) return inferred;
+  if (!bindings[context.receiver]) return inferred;
+  const expression=context.receiver+(context.chain || []).map(name=>name.startsWith('[')?name:'.'+name).join('');
+  return inferExpression(expression,new Map(Object.entries(bindings)),language);
+}
+
 export function sharedCompletion(language, source, caret, context, bindings = {}) {
   const modules={go:{strings:['Contains','Count','Fields','HasPrefix','HasSuffix','Join','ReplaceAll','Split','ToLower','ToUpper','TrimSpace'],fmt:['Print','Printf','Println','Sprint','Sprintf'],slices:['Clone','Contains','Delete','Equal','Index','Insert','Reverse','Sort'],maps:['Clone','Copy','Equal'],strconv:['Atoi','Itoa','ParseFloat','ParseInt']},elixir:{Enum:['all?','any?','at','count','each','filter','find','flat_map','frequencies','group_by','join','map','max','min','reduce','reverse','sort','sum','take','uniq'],String:['contains?','downcase','graphemes','length','replace','reverse','split','trim','upcase'],Map:['delete','fetch','get','has_key?','keys','merge','put','values'],MapSet:['delete','difference','intersection','member?','new','put','size','to_list','union'],IO:['inspect','puts']}};
   if(modules[language]?.[context.receiver])return modules[language][context.receiver].filter(name=>name.startsWith(context.prefix||'')).map(label=>({label,insert:label,detail:context.receiver+' function',receiverType:context.receiver}));
   if (language === 'javascript') return javascriptCompletion({...context,source,caret,bindings});
-  const inferred = inferContext(source,caret,language,context.receiver,context.chain);
+  const inferred = resolveContext(language,source,caret,context,bindings);
+  if (inferred?.unknown) return [];
   const type = inferred?.type || bindings[context.receiver];
   if (!type) return [];
   const docs = content[language]?.docs || [];
@@ -27,7 +36,7 @@ export function sharedCompletion(language, source, caret, context, bindings = {}
 export async function completeWithRuntime(language,source,caret,context,bindings={}) {
   const fallback=sharedCompletion(language,source,caret,context,bindings);
   if(language==='python'){
-    const inferred=inferContext(source,caret,language,context.receiver,context.chain);
+    const inferred=resolveContext(language,source,caret,context,bindings);
     const type=inferred?.type || bindings[context.receiver];
     if(!type || inferred?.unknown)return fallback;
     try{
@@ -37,12 +46,12 @@ export async function completeWithRuntime(language,source,caret,context,bindings
     }catch{return fallback;}
   }
   if(language!=='ruby') return fallback;
-  const inferred=inferContext(source,caret,language,context.receiver,context.chain);
+  const inferred=resolveContext(language,source,caret,context,bindings);
   const type=inferred?.type || bindings[context.receiver];
   if(!type || inferred?.unknown) return fallback;
   try {
     const names=await Promise.race([rubyMethods(type),new Promise(resolve=>setTimeout(()=>resolve(null),1000))]);
     if(!names) return fallback;
-    return names.filter(name=>name.startsWith(context.prefix || '') && /^[a-zA-Z_]/.test(name)).map(label=>({label,insert:label,detail:type+' method'}));
+    return names.filter(name=>name.startsWith(context.prefix || '') && /^[a-zA-Z_]/.test(name)).map(label=>({label,insert:label,detail:type+' method',receiverType:type}));
   } catch { return fallback; }
 }

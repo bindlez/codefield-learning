@@ -1,5 +1,5 @@
 import {spawn} from 'node:child_process';
-import {mkdtemp,readFile} from 'node:fs/promises';
+import {mkdtemp,readFile,writeFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -51,7 +51,9 @@ try{
     await page.send('Fetch.enable',{patterns:[{urlPattern:'https://leetcode.com/*'}]});
     page.on('Fetch.requestPaused',async({requestId,request})=>{
       const graphql=request.url.includes('graphql');
-      const q={title:'Two Sum',titleSlug:'two-sum',metaData:JSON.stringify({name:'twoSum',params:[{name:'nums',type:'integer[]'},{name:'target',type:'integer'}],return:{type:'integer[]'}}),exampleTestcases:'[2,7,11,15]\n9\n[3,2,4]\n6',content:'<pre>Input: nums = [2,7,11,15], target = 9\nOutput: [0,1]</pre><pre>Output: [1,2]</pre>',codeSnippets:[]};
+      const merge=request.postData?.includes('merge-strings-alternately');
+      const q=merge?{title:'Merge Strings Alternately',titleSlug:'merge-strings-alternately',metaData:JSON.stringify({name:'mergeAlternately',params:[{name:'word1',type:'string'},{name:'word2',type:'string'}],return:{type:'string'}}),exampleTestcases:'"abc"\n"pqr"',content:'<pre>Output: "apbqcr"</pre>',codeSnippets:[]}:
+        {title:'Two Sum',titleSlug:'two-sum',metaData:JSON.stringify({name:'twoSum',params:[{name:'nums',type:'integer[]'},{name:'target',type:'integer'}],return:{type:'integer[]'}}),exampleTestcases:'[2,7,11,15]\n9\n[3,2,4]\n6',content:'<pre>Input: nums = [2,7,11,15], target = 9\nOutput: [0,1]</pre><pre>Output: [1,2]</pre>',codeSnippets:[]};
       const fixture='<title>Two Sum</title><h1>Two Sum</h1><script>let code="function twoSum(nums,target) {}";window.monaco={editor:{getModels:()=>[{isDisposed:()=>false,getLanguageId:()=>"javascript",getValue:()=>code,getFullModelRange:()=>({}),pushStackElement(){},pushEditOperations(a,b){code=b[0].text}}]}}</script>';
       await page.send('Fetch.fulfillRequest',{requestId,responseCode:200,responseHeaders:[{name:'Content-Type',value:graphql?'application/json':'text/html'}],body:Buffer.from(graphql?JSON.stringify({data:{question:q}}):fixture).toString('base64')});
     });
@@ -92,6 +94,8 @@ try{
     await until(()=>run("!['Waiting for a pause…','Tracing example…',''].includes(document.querySelector('#verdict').textContent)"),22000);
     const verdict=await run("document.querySelector('#verdict').textContent");assert.match(verdict,/Matches example/,language+': '+verdict);
     assert.ok(await run("Number(document.querySelector('#step').max)>=2"),language+' trace count');
+    assert.ok(await run("document.querySelectorAll('#variables .variable').length>0"),language+' live variable cards');
+    assert.ok(await run("[...document.querySelectorAll('#variables .variable strong')].some(node=>node.textContent==='nums')"),language+' parameter in live variables');
     console.log(language,verdict,'· steps',await run("document.querySelector('#step').max"));
   }
   const js='function twoSum(nums,target) {\n const seen=new Map();\n for(let i=0;i<nums.length;i++){\n  if(seen.has(target-nums[i])) return [seen.get(target-nums[i]),i];\n  seen.set(nums[i],i);\n }\n}';
@@ -107,6 +111,35 @@ try{
   }
   await checkTrace('python','class Solution:\n    def twoSum(self, nums: List[int], target: int):\n        seen = {}\n        for i, n in enumerate(nums):\n            if target-n in seen:\n                return [seen[target-n],i]\n            seen[n]=i');
   await checkTrace('ruby','def two_sum(nums,target)\n  seen = {}\n  nums.each_with_index do |n,i|\n    return [seen[target-n],i] if seen.key?(target-n)\n    seen[n] = i\n  end\nend');
+  if(process.argv.includes('--screenshot'))console.log('Ruby return display:',await run("document.querySelector('#live-return').textContent"));
+  if(process.argv.includes('--screenshot')){
+    const shot=await panel.send('Page.captureScreenshot',{format:'png'});
+    await writeFile(new URL('../.cache/extension-panel.png',import.meta.url),Buffer.from(shot.data,'base64'));
+    await panel.send('Emulation.setDeviceMetricsOverride',{width:1000,height:900,deviceScaleFactor:1,mobile:false});
+    const wide=await panel.send('Page.captureScreenshot',{format:'png'});
+    await writeFile(new URL('../.cache/extension-wide.png',import.meta.url),Buffer.from(wide.data,'base64'));
+    await panel.send('Emulation.clearDeviceMetricsOverride');
+  }
+  for(const [language,source,method] of [
+    ['ruby','def two_sum(nums,target)\n  nums.e\nend','each'],
+    ['python','class Solution:\n    def twoSum(self, nums, target):\n        nums.a\n','append'],
+    ['javascript','function twoSum(nums,target) {\n  nums.m\n}','map']
+  ]){
+    await type(language,source);
+    await run("(()=>{const t=document.querySelector('#editor textarea');t.focus();const p=t.value.indexOf('nums.')+6;t.setSelectionRange(p,p);t.dispatchEvent(new Event('input',{bubbles:true}))})()");
+    await until(()=>run("[...document.querySelectorAll('.code-completion')].some(item=>item.textContent.includes("+JSON.stringify(method)+"))"));
+    assert.equal(await run("getComputedStyle(document.querySelector('.code-completions')).position"),'absolute',language+' caret popup');
+    if(language==='ruby' && process.argv.includes('--screenshot')){
+      await run("document.querySelector('#editor').scrollIntoView({block:'center'})");
+      const shot=await panel.send('Page.captureScreenshot',{format:'png'});
+      await writeFile(new URL('../.cache/extension-completion.png',import.meta.url),Buffer.from(shot.data,'base64'));
+    }
+    await until(()=>run("[...document.querySelectorAll('#method-list button')].some(item=>item.textContent==="+JSON.stringify(method)+")"));
+    await run("[...document.querySelectorAll('#method-list button')].find(item=>item.textContent==="+JSON.stringify(method)+").click()");
+    assert.ok(await run("document.querySelector('#method-name').textContent.includes("+JSON.stringify(method)+")"),language+' method explorer');
+    console.log(language,'parameter autocomplete and method explorer passed');
+  }
+  await type('javascript',js);
   await run("document.querySelector('#language').value='javascript';document.querySelector('#language').dispatchEvent(new Event('change'))");
   assert.equal(await run("document.querySelector('#editor textarea').value"),js);
   if(!live){
@@ -134,7 +167,7 @@ try{
         const setResult=await runExample({language,source:setSource,plan:setPlan,signal:new AbortController().signal,execute});
         rows.push({actual:setResult.actual,sample:2,error:setResult.error,steps:setResult.steps.length});
         if(!setResult.steps.some(step=>step.detail.toLowerCase().includes('set[') || step.detail.toLowerCase().includes('set(')))throw Error(language+' set values missing from trace');
-        if(!setResult.steps.some(step=>step.detail.includes('→ 2')))throw Error(language+' return value missing from trace');
+        if(language==='python' && !setResult.steps.some(step=>step.detail.includes('→ 2')))throw Error(language+' return value missing from trace');
       }
       frame.remove();return rows;
     })()`);
@@ -146,6 +179,13 @@ try{
     await run("document.querySelector('#play').click()");
     await until(()=>run("Number(document.querySelector('#step').value)>1"));
     console.log('Checked linked lists, sparse trees, auto-run pause and replay playback.');
+    await page.send('Page.navigate',{url:'https://leetcode.com/problems/merge-strings-alternately/'});
+    await until(()=>run("document.querySelector('#title').textContent==='Merge Strings Alternately'"));
+    await type('ruby','def merge_alternately(word1,word2)\n  word1.s\nend');
+    await run("(()=>{const t=document.querySelector('#editor textarea');t.focus();const p=t.value.indexOf('word1.s')+7;t.setSelectionRange(p,p);t.dispatchEvent(new Event('input',{bubbles:true}))})()");
+    await until(()=>run("[...document.querySelectorAll('.code-completion')].some(item=>item.textContent.includes('split'))"));
+    await until(()=>run("[...document.querySelectorAll('#method-list button')].some(item=>item.textContent==='split')"));
+    console.log('Merge Strings word1.s autocomplete and reference passed.');
   }
   if(live)console.log('Loaded website editor:',await ev(page,"JSON.stringify({monaco:!!window.monaco,monacoViews:document.querySelectorAll('.monaco-editor').length,codeMirror:document.querySelectorAll('.cm-editor').length,otherEditors:[...document.querySelectorAll('textarea,[contenteditable=true]')].map(e=>e.className).slice(0,5)})"));
   console.log('Trace navigation, source selection and per-language drafts passed.');

@@ -36,7 +36,7 @@ export function traceJavaScript(source, parse) {
       }
       if(node.type==='CatchClause')names(node.param,bindings);
     }
-    const list = [...bindings].slice(0,32);
+    const list = [...bindings].slice(0,50);
     const read = '[' + list.map(n => '['+JSON.stringify(n)+',()=>'+n+']').join(',') + ']';
     const call = (label,line=node.loc.start.line) => probe+'('+line+','+JSON.stringify(label)+','+read+')';
     const sequence = parent && (parent.body?.includes?.(node) || parent.consequent?.includes?.(node));

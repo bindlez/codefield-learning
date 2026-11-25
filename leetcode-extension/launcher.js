@@ -1,3 +1,5 @@
+(() => {
+if (globalThis.__codefieldLauncherInstalled) return;
 const launcher = document.createElement('div');
 const shadow = launcher.attachShadow({mode:'closed'});
 shadow.innerHTML = `<style>:host{all:initial;position:fixed;z-index:2147483640;right:12px;bottom:12px}button{background:#15372e;color:#baf6df;font:600 13px/1.2 system-ui;padding:9px 13px;border:1px solid #549e89;border-radius:20px;cursor:pointer}button:focus-visible{outline:3px solid white}</style><button type="button" title="Open the Codefield editor and live trace">⌘ Codefield</button>`;
@@ -45,3 +47,5 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     }).catch(() => respond(null));
   return true;
 });
+globalThis.__codefieldLauncherInstalled=true;
+})();

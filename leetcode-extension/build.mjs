@@ -10,7 +10,7 @@ async function copy(source,target) {
   await mkdir(path.dirname(dest),{recursive:true});
   await copyFile(source,dest);
 }
-const entries=['manifest.json','panel.html','panel.css','bootstrap.js','panel.js','execution.js','native-editor.js','background.js','launcher.js','sandbox.html','sandbox.js','local-worker.js'];
+const entries=['manifest.json','panel.html','panel.css','bootstrap.js','panel.js','execution.js','structured-trace.js','question-bridge.js','native-editor.js','background.js','launcher.js','sandbox.html','sandbox.js','local-worker.js'];
 for(const name of entries)await copy(path.join(root,name),name);
 // The source directory also works as an unpacked extension after building.
 // Inside dist the same files live at the extension root.

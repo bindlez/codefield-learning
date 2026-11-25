@@ -4,6 +4,7 @@ import {compiledScript} from './app/compiled-practice.js';
 import {runProgram} from './app/languages.js';
 import {parse} from './src/vendor/acorn.js';
 import {traceJavaScript} from './src/javascript-trace.js';
+import {instrumentStructured} from './structured-trace.js';
 
 export const localLanguages = new Set(['javascript','ruby','python']);
 export function compilerOrigin(language) {
@@ -63,7 +64,7 @@ export async function runExample({language,source,plan,signal,execute}) {
   }
   let result;
   if(localLanguages.has(language)) {
-    const code=interpretedExample(language,source,plan);
+    const code=interpretedExample(language,source,plan,{instrument:instrumentStructured});
     if (!code) throw Error('Live tracing for this problem needs a supported function signature. Try a custom example with plain values.');
     result=await execute(language,code,null,signal);
   } else {
@@ -73,7 +74,15 @@ export async function runExample({language,source,plan,signal,execute}) {
   }
   const steps=[],logs=[];let actual,returned=false;
   for (const line of (result.output || '').split(/\r?\n/)) {
-    if (line.startsWith('__CODEFIELD_CASE__')) {
+    if (line.startsWith('__CODEFIELD_TRACE__')) {
+      try {
+        const step=JSON.parse(line.slice('__CODEFIELD_TRACE__'.length));
+        if(Number.isInteger(step.line) && Array.isArray(step.variables)) {
+          step.detail=step.variables.map(item=>item.name+' = '+item.value).join('\n')+(step.event==='return'?'\n→ '+step.result:'');
+          steps.push(step);
+        }
+      } catch { logs.push('A trace step could not be read.'); }
+    } else if (line.startsWith('__CODEFIELD_CASE__')) {
       try { actual=JSON.parse(line.slice('__CODEFIELD_CASE__'.length));returned=true; } catch {}
     } else {
       const m=/^\[(?:line |step )(\d+)\]\s*(.*)$|^\[step\]\s*L(\d+)\s*(.*)$/.exec(line);

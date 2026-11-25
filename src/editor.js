@@ -40,8 +40,28 @@ export function createEditor(target, options = {}) {
     input.setAttribute('aria-autocomplete', 'list');
     input.setAttribute('aria-controls', completion.id);
     input.setAttribute('aria-expanded', 'false');
-    container.append(completion);
+    if(options.completionOverlay){root.classList.add('code-editor--completion-overlay');root.append(completion);}
+    else container.append(completion);
   }
+  const positionCompletion = () => {
+    if(!options.completionOverlay || !completion || completion.hidden)return;
+    const style=getComputedStyle(input),mirror=document.createElement('div'),marker=document.createElement('span');
+    Object.assign(mirror.style,{position:'absolute',visibility:'hidden',pointerEvents:'none',whiteSpace:'pre',
+      font:style.font,letterSpacing:style.letterSpacing,tabSize:style.tabSize,padding:style.padding,top:'0',left:'0'});
+    mirror.textContent=input.value.slice(0,input.selectionStart);
+    marker.textContent='\u200b';mirror.append(marker);root.append(mirror);
+    const parent=root.getBoundingClientRect(),position=marker.getBoundingClientRect();
+    const lineHeight=parseFloat(style.lineHeight) || 20;
+    const x=position.left-parent.left-input.scrollLeft,y=position.top-parent.top-input.scrollTop;
+    const width=Math.min(300,Math.max(120,root.clientWidth-16));
+    completion.style.width=width+'px';
+    completion.style.left=Math.max(8,Math.min(x,root.clientWidth-width-8))+'px';
+    const height=Math.min(140,Math.floor(root.clientHeight*.55),completion.scrollHeight);
+    completion.style.maxHeight=height+'px';
+    const below=y+lineHeight+4,spaceBelow=root.clientHeight-below-4;
+    completion.style.top=(spaceBelow>=height?below:Math.max(4,y-height-4))+'px';
+    mirror.remove();
+  };
   const closeCompletion = () => {
     completionRequest++;
     clearTimeout(completionTimer);
@@ -61,6 +81,16 @@ export function createEditor(target, options = {}) {
       const name = document.createElement('span'); name.textContent = item.display || item.label;
       const detail = document.createElement('small'); detail.textContent = item.detail || 'method';
       row.append(name, detail);
+      row.addEventListener('mouseenter', () => {
+        if(index===completionIndex)return;
+        completionIndex=index;
+        for(const [rowIndex,element] of [...completion.children].entries()){
+          element.classList.toggle('selected',rowIndex===index);
+          element.setAttribute('aria-selected',String(rowIndex===index));
+        }
+        input.setAttribute('aria-activedescendant',row.id);
+        options.onCompletionHighlight?.(item);
+      });
       row.addEventListener('mousedown', event => { event.preventDefault(); completionIndex = index; acceptCompletion(); });
       completion.append(row);
     });
@@ -69,6 +99,7 @@ export function createEditor(target, options = {}) {
     if (selected.offsetTop < completion.scrollTop) completion.scrollTop = selected.offsetTop;
     else if (selected.offsetTop + selected.offsetHeight > completion.scrollTop + completion.clientHeight) completion.scrollTop = selected.offsetTop + selected.offsetHeight - completion.clientHeight;
     options.onCompletionHighlight?.(completionItems[completionIndex]);
+    positionCompletion();
   };
   const acceptCompletion = () => {
     const item = completionItems[completionIndex];
@@ -124,7 +155,7 @@ export function createEditor(target, options = {}) {
     }
   };
   const onInput = () => { render(); options.onChange?.(input.value,{caret:input.selectionStart}); requestCompletion(); };
-  const onScroll = () => { gutter.scrollTop=input.scrollTop; if (display) { display.scrollTop = input.scrollTop; display.scrollLeft = input.scrollLeft; } };
+  const onScroll = () => { gutter.scrollTop=input.scrollTop; if (display) { display.scrollTop = input.scrollTop; display.scrollLeft = input.scrollLeft; } positionCompletion(); };
   const notifySelection = (value, start) => {
     const before = input.value.slice(0, start);
     const parent = before.endsWith('.') ? completionContext(before) : null;

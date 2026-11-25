@@ -25,11 +25,19 @@ self.onmessage = async ({data}) => {
       let omitted = 0;
       function observe(line, event, reads, value) {
         if (steps.length >= 120) { omitted++; return; }
-        const locals = [];
+        const locals = [], variables = [];
         for (const [name,get] of reads) {
-          try { const v=get(); if (typeof v !== 'function') locals.push(name+' = '+format(v)); } catch {}
+          try {
+            const v=get();
+            if (typeof v !== 'function') {
+              const value=format(v);
+              const type=v===null?'null':Array.isArray(v)?'Array':v instanceof Set?'Set':v instanceof Map?'Map':typeof v;
+              locals.push(name+' = '+value);
+              variables.push({name,value,type});
+            }
+          } catch {}
         }
-        steps.push({line,event,detail:locals.join('\n')+(arguments.length===4?'\n→ '+format(value):'')});
+        steps.push({line,event,variables,result:arguments.length===4?format(value):null,detail:locals.join('\n')+(arguments.length===4?'\n→ '+format(value):'')});
       }
       observe.result = (line,reads,value) => { observe(line,'return',reads,value); return value; };
       observe.test = (line,reads,value) => { observe(line,'condition',reads,Boolean(value)); return value; };
