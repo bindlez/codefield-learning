@@ -45,8 +45,9 @@ self.onmessage = async ({data}) => {
       result(observe,{postMessage:report => self.postMessage({report,steps,omitted})});
       return;
     }
-    const lines = [];
+    const lines = [], traceRecords = [];
     self.capturedOutput = () => lines.join('\n');
+    self.capturedTraceRecords = () => traceRecords;
     const output = line => {
       const text=String(line);
       if (lines.length < 350 || text.startsWith('__CODEFIELD_CASE__')) lines.push(text.startsWith('__CODEFIELD_CASE__')?text:text.slice(0,2600));
@@ -63,10 +64,11 @@ self.onmessage = async ({data}) => {
       await py.runPythonAsync(data.code);
     } else {
       const {vm} = await self['ruby-wasm-wasi'].DefaultRubyVM(await WebAssembly.compile(files['ruby.wasm']));
-      self.traceOutput = output;
-      vm.eval("require 'js'\nrequire 'json'\nrequire 'set'\nclass CodefieldOutput\n def write(s); JS.global.call(:traceOutput,s) unless s == \"\\n\"; s.bytesize; end\n def puts(*a); a.each { |s| JS.global.call(:traceOutput,s.to_s) }; end\n def flush; end\nend\n$stdout = CodefieldOutput.new");
-      vm.eval(data.code);
+      self.traceRecord = record => { try { traceRecords.push(JSON.parse(String(record))); } catch {} };
+      vm.eval("require 'js'\nrequire 'json'\nrequire 'set'\nrequire 'stringio'\n$stdout = StringIO.new");
+      try { vm.eval(data.code); }
+      finally { lines.push(vm.eval('$stdout.string').toString()); }
     }
-    self.postMessage({output:lines.join('\n')});
-  } catch (error) { self.postMessage({error:String(error.message || error).slice(0,3000),output:typeof self.capturedOutput==='function'?self.capturedOutput():''}); }
+    self.postMessage({output:lines.join('\n'),traceRecords});
+  } catch (error) { self.postMessage({error:String(error.message || error).slice(0,3000),output:typeof self.capturedOutput==='function'?self.capturedOutput():'',traceRecords:typeof self.capturedTraceRecords==='function'?self.capturedTraceRecords():[]}); }
 };

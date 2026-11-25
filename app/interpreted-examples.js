@@ -126,5 +126,5 @@ export function interpretedExample(language,source,plan,{trace=true,instrument=i
   const args='JSON.parse(['+bytes+'].pack("C*").force_encoding("UTF-8"))';
   const call='method(:'+name.replace(/[A-Z]/g,c=>'_'+c.toLowerCase())+').call(*__cf_args)';
   return 'require "json"\n'+(usesNodes?rubyNodes:'')+traced+'\n'+args+'.each do |__cf_case|\n  __cf_args = __cf_case'+(usesNodes?'.zip('+JSON.stringify(types)+').map { |v,t| __cf_node_arg(v,t) }':'')+
-    '\n  puts "__CODEFIELD_CASE__" + JSON.generate('+(usesNodes?'__cf_node_result('+call+','+JSON.stringify(ret)+')':call)+')\nend';
+    '\n  puts "\\n__CODEFIELD_CASE__" + JSON.generate('+(usesNodes?'__cf_node_result('+call+','+JSON.stringify(ret)+')':call)+')\nend';
 }

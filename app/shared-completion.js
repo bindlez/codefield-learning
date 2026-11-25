@@ -52,6 +52,6 @@ export async function completeWithRuntime(language,source,caret,context,bindings
   try {
     const names=await Promise.race([rubyMethods(type),new Promise(resolve=>setTimeout(()=>resolve(null),1000))]);
     if(!names) return fallback;
-    return names.filter(name=>name.startsWith(context.prefix || '') && /^[a-zA-Z_]/.test(name)).map(label=>({label,insert:label,detail:type+' method',receiverType:type}));
+    return names.filter(name=>name.startsWith(context.prefix || '')).map(label=>({label,insert:label,detail:type+' method',receiverType:type}));
   } catch { return fallback; }
 }

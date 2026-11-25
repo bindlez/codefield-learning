@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Codefield for LeetCode",
   "description": "Edit beside the problem and explore each example with a live execution trace.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minimum_chrome_version": "116",
   "permissions": [
     "sidePanel",

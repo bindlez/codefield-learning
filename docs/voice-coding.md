@@ -25,6 +25,10 @@ JavaScript, Ruby, Python, Rust, C++, C#, Java, Crystal, Go and Elixir have langu
 | `return expression count` | Return statement inside an existing function, except Elixir |
 | `if condition count greater than 2` | Conditional block, cursor inside |
 | `while condition count less than 10` | Loop block, cursor inside. Go uses `for`; Elixir uses recursion or enumeration |
+| `for each item in nums` | Iterate over a collection, with the cursor inside the loop |
+| `for each index i in nums` | Ruby index loop |
+| `inspect expression item` | Ruby `p item` |
+| `call sort on nums` | Insert `nums.sort()` |
 | `comment explain this loop` | Language-specific comment |
 
 Supported expression phrases: `greater than or equal`, `less than or equal`, `not equals`, `equals equals`, `greater than`, `less than`, `plus`, `minus`, `times`, `modulo`. Python booleans become `True` and `False`. Expressions containing quotes are inserted literally so string contents are preserved. These commands use a small deterministic grammar; they do not translate arbitrary spoken English into code.

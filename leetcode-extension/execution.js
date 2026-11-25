@@ -72,7 +72,7 @@ export async function runExample({language,source,plan,signal,execute}) {
     if (!code) throw Error('This compiler harness supports functions with scalar and array examples.');
     result=await runProgram(language,code,{signal});
   }
-  const steps=[],logs=[];let actual,returned=false;
+  const steps=(result.traceRecords || []).map(step=>({...step,detail:(step.variables || []).map(item=>item.name+' = '+item.value).join('\n')})),logs=[];let actual,returned=false;
   for (const line of (result.output || '').split(/\r?\n/)) {
     if (line.startsWith('__CODEFIELD_TRACE__')) {
       try {
@@ -94,12 +94,17 @@ export async function runExample({language,source,plan,signal,execute}) {
   return {actual,steps,logs,error};
 }
 
+export function matchesExample(result,test,type,slug) {
+  if(result.error)return false;
+  if(test.known===false || test.expected===undefined)return null;
+  const unordered=slug==='two-sum' && Array.isArray(result.actual) && Array.isArray(test.expected);
+  const ordered=v=>unordered?[...v].sort((a,b)=>a-b):v;
+  return compareValues(ordered(result.actual),ordered(test.expected),type);
+}
 export function outcome(result,test,type,slug) {
   if(result.error)return result.error;
   const text=JSON.stringify(result.actual) ?? 'undefined';
-  if(!test.known)return 'Returned '+text;
-  const unordered=slug==='two-sum' && Array.isArray(result.actual) && Array.isArray(test.expected);
-  const ordered=v=>unordered?[...v].sort((a,b)=>a-b):v;
-  return compareValues(ordered(result.actual),ordered(test.expected),type)
+  if(matchesExample(result,test,type,slug)===null)return 'Returned '+text;
+  return matchesExample(result,test,type,slug)
     ? 'Matches example · '+text : 'Returned '+text+' · Example expects '+JSON.stringify(test.expected);
 }

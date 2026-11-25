@@ -14,7 +14,7 @@ export function instrumentStructured(language, source) {
     const before='puts "[line #{event.lineno}] #{values}"';
     // TracePoint reports nil for some non-local returns through blocks. The
     // example harness provides the actual return value separately.
-    const after='types = values.keys.to_h { |name| [name, event.binding.local_variable_get(name).class.to_s] }\n    record = {line: event.lineno, event: (event.event == :return ? "exit" : "line"), variables: values.map { |name, value| {name: name.to_s, value: value, type: types[name]} }, result: nil}\n    puts "__CODEFIELD_TRACE__" + JSON.generate(record)';
+    const after='types = values.keys.to_h { |name| [name, event.binding.local_variable_get(name).class.to_s] }\n    record = {line: event.lineno, event: (event.event == :return ? "exit" : "line"), variables: values.map { |name, value| {name: name.to_s, value: value, type: types[name]} }, result: nil}\n    JS.global.call(:traceRecord, JSON.generate(record))';
     if(!code.includes(before))throw Error('Ruby trace instrumentation is unavailable.');
     return code.replace(before,after);
   }

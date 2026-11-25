@@ -154,7 +154,8 @@ async function run() {
   if(source && result.ok){
     const rows=(result.output || '').split(/\r?\n/).filter(line=>line.startsWith('__CODEFIELD_CASE__'));
     if(rows.length===plan.tests.length){
-      output.textContent=rows.map((line,i)=>describeExampleTrace({ok:true,output:line},plan.tests[i],plan.returns?.type)).map(p=>p.verdict+'\n'+p.text).join('\n\n');
+      const printed=(result.output || '').split(/\r?\n/).filter(line=>!line.startsWith('__CODEFIELD_CASE__')).join('\n').trim();
+      output.textContent=[printed && 'Console output:\n'+printed,rows.map((line,i)=>describeExampleTrace({ok:true,output:line},plan.tests[i],plan.returns?.type)).map(p=>p.verdict+'\n'+p.text).join('\n\n')].filter(Boolean).join('\n\n');
       return;
     }
   }

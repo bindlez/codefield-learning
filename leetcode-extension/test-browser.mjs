@@ -52,7 +52,7 @@ try{
     page.on('Fetch.requestPaused',async({requestId,request})=>{
       const graphql=request.url.includes('graphql');
       const merge=request.postData?.includes('merge-strings-alternately');
-      const q=merge?{title:'Merge Strings Alternately',titleSlug:'merge-strings-alternately',metaData:JSON.stringify({name:'mergeAlternately',params:[{name:'word1',type:'string'},{name:'word2',type:'string'}],return:{type:'string'}}),exampleTestcases:'"abc"\n"pqr"',content:'<pre>Output: "apbqcr"</pre>',codeSnippets:[]}:
+      const q=merge?{title:'Merge Strings Alternately',titleSlug:'merge-strings-alternately',metaData:JSON.stringify({name:'mergeAlternately',params:[{name:'word1',type:'string'},{name:'word2',type:'string'}],return:{type:'string'}}),exampleTestcases:'"abc"\n"pqr"\n"ab"\n"pqrs"\n"abcd"\n"pq"',content:'<pre>Input: word1 = "abc", word2 = "pqr"\nOutput: "apbqcr"</pre><pre>Input: word1 = "ab", word2 = "pqrs"\nOutput: "apbqrs"</pre><pre>Input: word1 = "abcd", word2 = "pq"\nOutput: "apbqcd"</pre>',codeSnippets:[]}:
         {title:'Two Sum',titleSlug:'two-sum',metaData:JSON.stringify({name:'twoSum',params:[{name:'nums',type:'integer[]'},{name:'target',type:'integer'}],return:{type:'integer[]'}}),exampleTestcases:'[2,7,11,15]\n9\n[3,2,4]\n6',content:'<pre>Input: nums = [2,7,11,15], target = 9\nOutput: [0,1]</pre><pre>Output: [1,2]</pre>',codeSnippets:[]};
       const fixture='<title>Two Sum</title><h1>Two Sum</h1><script>let code="function twoSum(nums,target) {}";window.monaco={editor:{getModels:()=>[{isDisposed:()=>false,getLanguageId:()=>"javascript",getValue:()=>code,getFullModelRange:()=>({}),pushStackElement(){},pushEditOperations(a,b){code=b[0].text}}]}}</script>';
       await page.send('Fetch.fulfillRequest',{requestId,responseCode:200,responseHeaders:[{name:'Content-Type',value:graphql?'application/json':'text/html'}],body:Buffer.from(graphql?JSON.stringify({data:{question:q}}):fixture).toString('base64')});
@@ -111,6 +111,11 @@ try{
   }
   await checkTrace('python','class Solution:\n    def twoSum(self, nums: List[int], target: int):\n        seen = {}\n        for i, n in enumerate(nums):\n            if target-n in seen:\n                return [seen[target-n],i]\n            seen[n]=i');
   await checkTrace('ruby','def two_sum(nums,target)\n  seen = {}\n  nums.each_with_index do |n,i|\n    return [seen[target-n],i] if seen.key?(target-n)\n    seen[n] = i\n  end\nend');
+  await type('ruby','def two_sum(nums,target)\n  nums.each_cons(2) do |pair|\n    p pair.sum\n  end\n  for n in nums\n    p n\n  end\n  [0,1]\nend');
+  await until(()=>run("document.querySelector('#verdict').textContent.includes('Matches example')"),22000);
+  assert.equal(await run("document.querySelector('#console pre').textContent"),'9\n18\n26\n2\n7\n11\n15');
+  assert.equal(await run("document.querySelector('#console').open"),true);
+  console.log('Ruby block and for-loop output captured');
   if(process.argv.includes('--screenshot'))console.log('Ruby return display:',await run("document.querySelector('#live-return').textContent"));
   if(process.argv.includes('--screenshot')){
     const shot=await panel.send('Page.captureScreenshot',{format:'png'});
@@ -186,6 +191,20 @@ try{
     await until(()=>run("[...document.querySelectorAll('.code-completion')].some(item=>item.textContent.includes('split'))"));
     await until(()=>run("[...document.querySelectorAll('#method-list button')].some(item=>item.textContent==='split')"));
     console.log('Merge Strings word1.s autocomplete and reference passed.');
+    await type('ruby',"def merge_alternately(word1,word2)\n  a = word1.split('')\n  a.joi\nend");
+    await run("(()=>{const t=document.querySelector('#editor textarea');t.focus();const p=t.value.indexOf('a.joi')+5;t.setSelectionRange(p,p);t.dispatchEvent(new Event('input',{bubbles:true}))})()");
+    await until(()=>run("[...document.querySelectorAll('.code-completion')].some(item=>item.textContent.includes('join'))"));
+    await until(()=>run("document.querySelector('#method-preview').textContent.includes('abc')"),15000).catch(async e=>{console.log('DIAGNOSTIC',await run("JSON.stringify({preview:document.querySelector('#method-preview').textContent,method:document.querySelector('#method-name').textContent,values:document.querySelector('#variables').textContent,map:document.querySelector('.semantic-panel').textContent,verdict:document.querySelector('#verdict').textContent,steps:document.querySelector('#step').max})"));throw e;});
+    assert.ok(await run("document.querySelector('.semantic-panel').textContent.includes('abc')"),'Code Map contains observed values');
+    await run("document.querySelector('#example').value='1';document.querySelector('#example').dispatchEvent(new Event('change'))");
+    await until(()=>run("document.querySelector('#method-preview').textContent.includes('ab') && document.querySelector('#method-preview').textContent.includes('Example 2')"),30000);
+    const solution='def merge_alternately(word1,word2)\n  result = ""\n  [word1.length,word2.length].max.times do |i|\n    result << word1[i].to_s\n    result << word2[i].to_s\n  end\n  result\nend';
+    await type('ruby',solution);
+    await until(()=>run("!document.querySelector('#results-summary').hidden && document.querySelector('#results-summary').dataset.state==='pass' && document.querySelector('#results-summary').textContent.includes('3 published examples')"),30000);
+    assert.ok((await run("document.querySelector('#results-summary').textContent")).includes('3 published examples'));
+    await run("document.querySelector('#save-file').click();document.querySelector('#open-files').click()");
+    assert.ok(await run("!!document.querySelector('dialog.file-manager[open]')"),'file explorer opens');
+    console.log('Observed Code Map, example switching, join preview, solved status and files passed.');
   }
   if(live)console.log('Loaded website editor:',await ev(page,"JSON.stringify({monaco:!!window.monaco,monacoViews:document.querySelectorAll('.monaco-editor').length,codeMirror:document.querySelectorAll('.cm-editor').length,otherEditors:[...document.querySelectorAll('textarea,[contenteditable=true]')].map(e=>e.className).slice(0,5)})"));
   console.log('Trace navigation, source selection and per-language drafts passed.');

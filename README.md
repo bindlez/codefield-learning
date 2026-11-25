@@ -1,4 +1,22 @@
-# Codefield 0.6.0-alpha
+# Codefield
+
+### See your code think.
+
+An interactive coding workspace for learning, experimenting, and practicing problems—with a companion editor that lives beside LeetCode.
+
+![Codefield for LeetCode: editor, live values, trace, and method explorer](docs/images/leetcode-workspace.png)
+
+**[Install the LeetCode extension](leetcode-extension/README.md)** · **[What’s new](docs/release-0.6.1-alpha.md)** · **[Next steps](docs/next-pass.md)**
+
+### Start here
+
+1. Download the extension archive from the latest GitHub release and extract it.
+2. Open Edge or Chrome extensions, enable developer mode, and choose **Load unpacked**. Select the extracted folder.
+3. Open a LeetCode problem and select **Codefield**. Your draft saves automatically in this browser; **Save** keeps a named copy and **Files** opens your saved work.
+
+The extension runs published examples automatically where supported. A green example result helps you check your work; submit on LeetCode for its official verdict and hidden tests.
+
+## Codefield 0.6.1-alpha
 
 To use the Codefield editor directly beside a problem on the LeetCode website, install the separate [Codefield for LeetCode extension](leetcode-extension/README.md). Its bundled local runners provide step replay for JavaScript, Ruby and Python without starting the app server.
 
@@ -28,7 +46,7 @@ The learning studio includes named local files and snippets, independent compari
 
 The method explorer follows the highlighted autocomplete suggestion and shows a separate explanation, examples, and inferred parent path. Detailed guides cover a selection of common methods; others link to the official references. Rust snippets can be automatically wrapped in a visibly displayed `fn main()`; complete programs are sent unchanged. The opt-in live preview runs the entire Ruby or JavaScript editor in a fresh worker after typing pauses, separate from the main session. It may execute side effects and is not a security sandbox; it does not automatically send Rust or C++ code to remote services.
 
-The Code Map presents statically inferred variables and expression steps as clickable chips; it does not execute code or show actual runtime values. Ruby completion recognizes simple multiline `map do ... end` chains, including `each_cons`; nested blocks and arbitrary Ruby syntax are not fully analyzed. Ruby method colors indicate inferred receiver types and are best-effort.
+The playground Code Map presents statically inferred variables and expression steps as clickable chips. In the LeetCode extension, the map can also show values observed during the selected trace. Ruby completion recognizes simple multiline `map do ... end` chains, including `each_cons`; nested blocks and arbitrary Ruby syntax are not fully analyzed. Ruby method colors indicate inferred receiver types and are best-effort.
 
 ## Embed the editor
 
@@ -59,3 +77,7 @@ Rust support includes syntax coloring, selected standard-library method suggesti
 
 
 Ruby's lightweight inference also follows string arrays produced by `split`, numeric indexing, and `for item in array` loops when element types are known. Indexed results are tentative because an index can return `nil`. Mixed arrays, mutations, dynamic values and other Ruby syntax can make inference uncertain or unavailable.
+
+## Ruby Trail
+
+Open **Ruby Trail** from the playground to explore Ruby lessons, a prediction review, and a guided tour of the official documentation. Progress and notebook entries stay in this browser. See the [Ruby Trail guide](docs/ruby-trail-guide.md) and [development journal](docs/ruby-trail-journal.md) for usage and current limits.

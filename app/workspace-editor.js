@@ -10,8 +10,9 @@ import {documentationUrl} from './documentation.js';
 import {pythonDocs} from './python-catalog.js';
 import {pythonGuide} from './python-methods.js';
 import {completionContext} from '../src/completion.js';
-import {methodPreview,previewText} from '../src/method-preview.js';
+import {methodPreview,previewText,expressionPreview} from '../src/method-preview.js';
 import {mountFileManager} from './file-manager.js';
+import {mountValueExplorer} from './value-explorer.js';
 
 export function createEditor(target,options) {
   const host=typeof target==='string'?document.querySelector(target):target;
@@ -34,7 +35,7 @@ export function createEditor(target,options) {
     if(!method)return;
     const currentDetail=++detailRevision;
     const context=completionContext(editor.getValue(),editor.getCaret()) || previewContext;
-    preview.textContent=previewText(methodPreview({source:editor.getValue(),caret:editor.getCaret(),language,receiver:context?.receiver,chain:context?.chain || [],method}));
+    preview.textContent=previewText(methodPreview({source:editor.getValue(),caret:editor.getCaret(),language,receiver:context?.receiver,chain:context?.chain || [],method,observed:options.getObservedValues?.()}));
     if(doc)picker.value=doc.name;
     const guide=completionItem?.preview || (language==='python'?pythonGuide(method):methodGuide(language,method,doc));
     let signature=guide.signature || doc?.name || method,description=guide.description || '',example=guide.example || '';
@@ -90,8 +91,21 @@ export function createEditor(target,options) {
       button.onclick=()=>editor.find(name);symbols.append(button);
     }
   }
+  let expressionCard;
+  function updateExpression(){
+    if(!expressionCard)return;
+    const result=expressionPreview(editor.getValue(),editor.getCaret(),language,options.getObservedValues?.());
+    expressionCard.hidden=!result;
+    if(result)expressionCard.textContent=result.expression+'  →  '+JSON.stringify(result.after)+'  ·  '+result.label;
+  }
+  if(!options.minimal){
+    expressionCard=document.createElement('div');expressionCard.className='expression-preview';expressionCard.setAttribute('aria-live','polite');expressionCard.hidden=true;host.append(expressionCard);
+    host.addEventListener('input',updateExpression);host.addEventListener('keyup',updateExpression);host.addEventListener('click',updateExpression);
+    queueMicrotask(updateExpression);
+  }
   if(!options.minimal && !options.playground) host.before(tools);
   const removeFiles = options.minimal ? () => {} : mountFileManager(host, language, () => editor);
+  const removeValueExplorer = options.minimal ? () => {} : mountValueExplorer(host,language,()=>editor);
   if(!options.minimal) model=modelPanel(host,language,()=>editor,name=>{inspect(name);if(!options.playground && !options.onReferenceUpdate)tools.open=true;},!!options.modelOpen,!!options.compactModel);
   if(options.modelOpen) model?.schedule();
   tools.ontoggle=()=>{if(tools.open) renderMap();};
@@ -105,6 +119,7 @@ export function createEditor(target,options) {
   };
   const destroy=editor.destroy;
   editor.inspectMethod=(name,type,item)=>{referenceType=type || referenceType;inspect(name,item);};
-  editor.destroy=()=>{selectionRevision++;detailRevision++;removeFiles();tools.remove();model?.destroy();destroy();};
+  editor.setObservedValues=(values,label)=>{model?.setObservedValues(values,label);updateExpression();};
+  editor.destroy=()=>{selectionRevision++;detailRevision++;removeValueExplorer();removeFiles();host.removeEventListener('input',updateExpression);host.removeEventListener('keyup',updateExpression);host.removeEventListener('click',updateExpression);expressionCard?.remove();tools.remove();model?.destroy();destroy();};
   return editor;
 }
