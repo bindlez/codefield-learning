@@ -4,7 +4,8 @@ import {parseVoiceCommand, resolveVoiceSelection, findVoiceMatches} from '../src
 import {practiceData, catalogIndex} from './practice-data.js';
 import {testsFromProblem} from './judge.js';
 import {buildScript, describeExampleTrace, describeExamplesTrace} from './multilang-judge.js';
-import {instrumentInterpreted, instrumentJavaScript} from './trace.js';
+import {instrumentPracticeJavaScript} from './trace.js';
+import {interpretedExample} from './interpreted-examples.js';
 import {createJudgeRunner} from './judge.js';
 import {textOf} from './sanitize.js';
 import {completionContext} from '../src/completion.js';
@@ -13,6 +14,7 @@ import {content} from './content.js';
 import {methodGuide} from './method-guides.js';
 import {problemStarter} from './problem-starter.js';
 import {voiceCode} from '../src/voice-code.js';
+import {findSavedFile,saveNamedFile} from './file-manager.js';
 const $ = selector => document.querySelector(selector);
 const language = $('#language'), status = $('#status'), output = $('#output');
 const initialQuery=new URLSearchParams(location.search);
@@ -86,14 +88,14 @@ function queuePreview() {
   if(!['ruby','python','javascript'].includes(lang) || !editor?.getValue().trim()) return;
   if(problem && !plan?.tests?.length){output.textContent='This problem has no runnable published examples.';return;}
   const revision=previewRevision, code=editor.getValue();
-  const source=problem && lang!=='javascript'?buildScript(lang,instrumentInterpreted(lang,code),plan):code;
+  const source=problem && lang!=='javascript'?interpretedExample(lang,code,plan):code;
   if(!source){output.textContent='This problem shape needs a custom test call.';return;}
   output.textContent='Waiting for you to pause…';
   previewTimer=setTimeout(async()=>{
     output.textContent=problem?'Checking examples…':'Running preview…';
     if(problem && lang==='javascript'){
       const runner=createJudgeRunner({timeoutMs:5000});previewRunner=runner;
-      const {report,results}=await runner.run({code:instrumentJavaScript(code).code,functionName:plan.functionName,params:plan.params,returns:plan.returns,tests:plan.tests.map(test=>({args:test.args,expected:test.known===false?undefined:test.expected}))});
+      const {report,results}=await runner.run({code:instrumentPracticeJavaScript(code).code,functionName:plan.functionName,params:plan.params,returns:plan.returns,tests:plan.tests.map(test=>({args:test.args,expected:test.known===false?undefined:test.expected}))});
       if(revision!==previewRevision)return;
       runner.dispose();previewRunner=null;
       const known=results.filter(row=>row.passed!==null),passed=known.filter(row=>row.passed).length;
@@ -140,7 +142,7 @@ async function run() {
   if(problem && plan?.tests?.length && language.value==='javascript'){
     const runner=createJudgeRunner({timeoutMs:5000});
     previewRunner=runner;
-    const {report,results}=await runner.run({code:instrumentJavaScript(editor.getValue()).code,functionName:plan.functionName,params:plan.params,returns:plan.returns,tests:plan.tests.map(test=>({args:test.args,expected:test.known===false?undefined:test.expected}))});
+    const {report,results}=await runner.run({code:instrumentPracticeJavaScript(editor.getValue()).code,functionName:plan.functionName,params:plan.params,returns:plan.returns,tests:plan.tests.map(test=>({args:test.args,expected:test.known===false?undefined:test.expected}))});
     if(controller!==current){runner.dispose();return;}
     runner.dispose();previewRunner=null;
     output.textContent=report.loadError || results.map(row=>'Input '+row.input+'\n'+(row.error?'Error '+row.error:'Returned '+JSON.stringify(row.actual)+(row.passed===null?' · self-check':row.passed?' · passes':' · expected '+JSON.stringify(row.expected)))).join('\n\n');
@@ -207,9 +209,19 @@ else {
       }
       const fileCommand=/^(save|open) file ([\w -]{1,64})[.!]?$/i.exec(text);
       if(fileCommand){
-        const name=fileCommand[2].trim().toLowerCase(),key='codefield.voice.file.'+language.value+'.'+name;
-        if(fileCommand[1].toLowerCase()==='save'){localStorage.setItem(key,editor.getValue());status.textContent='Saved '+name;}
-        else {const value=localStorage.getItem(key);if(value===null)status.textContent='No file named '+name;else{editor.selectRange(0,editor.getValue().length);editor.insert(value);status.textContent='Opened '+name+'. Say undo to return.';}}
+        const name=fileCommand[2].trim();
+        try {
+          if(fileCommand[1].toLowerCase()==='save'){
+            saveNamedFile(name,language.value,editor.getValue());
+            status.textContent='Saved '+name+'.';
+          } else {
+            const file=findSavedFile(name,language.value);
+            const legacy=localStorage.getItem('codefield.voice.file.'+language.value+'.'+name.toLowerCase());
+            const value=file?.code ?? legacy;
+            if(value===null)status.textContent='No file named '+name+'.';
+            else{editor.selectRange(0,editor.getValue().length);editor.insert(value);status.textContent='Opened '+name+'. Say undo to return.';}
+          }
+        } catch {status.textContent='Could not access saved files in this browser.';}
         continue;
       }
       const lineCommand=/^go to line (\d+)[.!]?$/i.exec(text);
@@ -250,7 +262,7 @@ else {
       else if(/^stop (listening|microphone)[.!]?$/i.test(text)) { wantsListening=false; clearTimeout(restartTimer); recognition.stop(); updateKeyboardMode(); announce('Microphone stopped.'); }
       else if(/^new line[.!]?$/i.test(text)) { editor.insert('\n'); status.textContent='Inserted a new line.'; }
       else if(/^tab[.!]?$/i.test(text)) { editor.insert('  '); status.textContent='Inserted indentation.'; }
-      else if(/^language (javascript|ruby|python|rust|c plus plus|c sharp|java|crystal)[.!]?$/i.test(text)) {
+      else if(/^language (javascript|ruby|python|rust|c plus plus|c sharp|java|crystal|go|elixir)[.!]?$/i.test(text)) {
         const spoken = text.toLowerCase().replace(/[.!?]+$/,'').replace(/^language /,'');
         language.value = {'c plus plus':'cpp','c sharp':'csharp'}[spoken] || spoken;
         mount(); updateKeyboardMode(); announce('Language changed to '+languages[language.value]+'.');

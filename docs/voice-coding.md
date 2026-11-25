@@ -12,19 +12,19 @@ Speak one command at a time. New commands insert at the cursor or replace the cu
 4. The cursor is placed inside the condition's body. Say `print expression count`.
 5. Say `run code`.
 
-JavaScript, Ruby, Python, Rust, C++, C#, Java and Crystal have language-specific syntax templates. Rust, C++, C# and Java require the surrounding program structure expected by their runtime; templates insert statements, not a complete application. Java `var` requires a local variable inside a method. C++ output requires iostream. C# output requires System. Use the editor's existing starter program.
+JavaScript, Ruby, Python, Rust, C++, C#, Java, Crystal, Go and Elixir have language-specific syntax templates. Compiled languages require the surrounding program structure expected by their runtime. Java `var` requires a local variable inside a method. C++ output requires iostream, C# output requires System, and Go output requires fmt. Use the editor's existing starter program.
 
 ## Statement commands
 
 | Say | Result |
 |---|---|
 | `variable count equals 3` | Declaration using the selected language |
-| `constant count equals 3` | `const` in JavaScript, immutable `let` in Rust; ordinary declaration in the other languages |
+| `constant count equals 3` | `const` in JavaScript and Go, immutable `let` in Rust; ordinary declaration in the other languages with a template |
 | `set count to count plus 1` | Assignment |
 | `print expression count` | Language-specific output |
-| `return expression count` | Return statement inside an existing function |
+| `return expression count` | Return statement inside an existing function, except Elixir |
 | `if condition count greater than 2` | Conditional block, cursor inside |
-| `while condition count less than 10` | Loop block, cursor inside |
+| `while condition count less than 10` | Loop block, cursor inside. Go uses `for`; Elixir uses recursion or enumeration |
 | `comment explain this loop` | Language-specific comment |
 
 Supported expression phrases: `greater than or equal`, `less than or equal`, `not equals`, `equals equals`, `greater than`, `less than`, `plus`, `minus`, `times`, `modulo`. Python booleans become `True` and `False`. Expressions containing quotes are inserted literally so string contents are preserved. These commands use a small deterministic grammar; they do not translate arbitrary spoken English into code.
@@ -49,6 +49,6 @@ After a receiver, say `dot`, then `suggest methods`. Say `use suggestion 1` or `
 
 Say `read problem`, `read example`, `read code`, `read line`, `read output`, `run code`, or `next problem`. Published-example results are not a LeetCode submission or hidden-test verdict.
 
-`save file demo` and `open file demo` use browser storage for the selected language. Opening replaces the editor; Undo restores it. Export valuable work separately because clearing browser storage deletes saved drafts.
+`save file demo` and `open file demo` use the shared Files collection for the selected language. Opening replaces the editor; Undo restores it. Older voice-only saves can still be opened. Export valuable work separately because clearing browser storage deletes saved drafts.
 
-Switch with `language ruby`, `language python`, `language javascript`, `language rust`, `language c plus plus`, `language c sharp`, `language java`, or `language crystal`. Say `stop listening` to stop the microphone. Remote compilation asks for confirmation before sending code.
+Switch with `language ruby`, `language python`, `language javascript`, `language rust`, `language c plus plus`, `language c sharp`, `language java`, `language crystal`, `language go`, or `language elixir`. Say `stop listening` to stop the microphone. Remote compilation asks for confirmation before sending code.

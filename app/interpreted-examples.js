@@ -1,5 +1,4 @@
-import {buildScript} from './app/multilang-judge.js';
-import {instrumentInterpreted} from './app/trace.js';
+import {instrumentInterpreted} from './trace.js';
 
 const pythonNodes = `
 class ListNode:
@@ -105,26 +104,27 @@ end
 
 // The scaffolding executes outside the traced source file, keeping line numbers
 // aligned with the editor even when LeetCode supplies commented node definitions.
-export function interpretedExample(language,source,plan) {
+export function interpretedExample(language,source,plan,{trace=true}={}) {
+  if (!['ruby','python'].includes(language) || !plan?.tests?.length || !Array.isArray(plan.params)) return null;
   const python=language==='python';
   const prelude=python?'from typing import *\nfrom collections import *\n':'';
-  const traced=instrumentInterpreted(language,source);
+  const traced=trace?instrumentInterpreted(language,source):source;
   const types=plan.params.map(p=>p.type),ret=plan.returns?.type || '';
   const treeOrList=t=>t==='TreeNode' || t==='ListNode';
   const usesNodes=[...types,ret].some(treeOrList);
-  if(python && !usesNodes)return buildScript(language,prelude+traced,plan);
   if([...types,ret].some(t=>/Node|NestedInteger/.test(t) && !treeOrList(t)))return null;
   const name=plan.functionName;
   if(!/^[a-zA-Z_]\w*$/.test(name))return null;
-  const raw=JSON.stringify(plan.tests[0].args);
-  if(python)return prelude+pythonNodes+traced+'\nimport json as __cf_json\n'+
+  const raw=JSON.stringify(plan.tests.map(test=>test.args));
+  if(python)return prelude+(usesNodes?pythonNodes:'')+traced+'\nimport json as __cf_json\n'+
     '__cf_call = getattr(Solution(), '+JSON.stringify(name)+') if "Solution" in globals() else globals()['+JSON.stringify(name)+']\n'+
-    '__cf_args = [__cf_node_arg(v,t) for v,t in zip(__cf_json.loads('+JSON.stringify(raw)+'),'+JSON.stringify(types)+')]\n'+
-    'print("__CODEFIELD_CASE__" + __cf_json.dumps(__cf_node_result(__cf_call(*__cf_args),'+JSON.stringify(ret)+')))';
+    'for __cf_case in __cf_json.loads('+JSON.stringify(raw)+'):\n'+
+    '    __cf_args = '+(usesNodes?'[__cf_node_arg(v,t) for v,t in zip(__cf_case,'+JSON.stringify(types)+')]':'__cf_case')+'\n'+
+    '    print("__CODEFIELD_CASE__" + __cf_json.dumps('+(usesNodes?'__cf_node_result(__cf_call(*__cf_args),'+JSON.stringify(ret)+')':'__cf_call(*__cf_args)')+'))';
   // Preserve test data verbatim, including Ruby interpolation and backslashes.
   const bytes=[...new TextEncoder().encode(raw)].join(',');
   const args='JSON.parse(['+bytes+'].pack("C*").force_encoding("UTF-8"))';
   const call='method(:'+name.replace(/[A-Z]/g,c=>'_'+c.toLowerCase())+').call(*__cf_args)';
-  return (usesNodes?rubyNodes:'')+traced+'\n__cf_args = '+args+(usesNodes?'.zip('+JSON.stringify(types)+').map { |v,t| __cf_node_arg(v,t) }':'')+
-    '\nputs "__CODEFIELD_CASE__" + JSON.generate('+(usesNodes?'__cf_node_result('+call+','+JSON.stringify(ret)+')':call)+')';
+  return 'require "json"\n'+(usesNodes?rubyNodes:'')+traced+'\n'+args+'.each do |__cf_case|\n  __cf_args = __cf_case'+(usesNodes?'.zip('+JSON.stringify(types)+').map { |v,t| __cf_node_arg(v,t) }':'')+
+    '\n  puts "__CODEFIELD_CASE__" + JSON.generate('+(usesNodes?'__cf_node_result('+call+','+JSON.stringify(ret)+')':call)+')\nend';
 }

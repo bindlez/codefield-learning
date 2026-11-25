@@ -1,9 +1,9 @@
 import {buildJudgeSource,compareValues} from './app/judge.js';
-import {interpretedExample} from './node-adapters.js';
+import {interpretedExample} from './app/interpreted-examples.js';
 import {compiledScript} from './app/compiled-practice.js';
 import {runProgram} from './app/languages.js';
-import {parse} from './vendor/acorn.mjs';
-import {traceJavaScript} from './javascript-trace.js';
+import {parse} from './src/vendor/acorn.js';
+import {traceJavaScript} from './src/javascript-trace.js';
 
 export const localLanguages = new Set(['javascript','ruby','python']);
 export function compilerOrigin(language) {

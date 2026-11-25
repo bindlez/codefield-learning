@@ -20,6 +20,19 @@ function readLegacyFiles() {
   }
 }
 
+export function findSavedFile(name, language) {
+  const normalized = name.trim().toLocaleLowerCase();
+  return [...readFiles(), ...readLegacyFiles()].find(item =>
+    item.kind !== 'snippet' && item.language === language && item.name?.trim().toLocaleLowerCase() === normalized
+  );
+}
+
+export function saveNamedFile(name, language, code) {
+  const files = readFiles();
+  files.unshift({id:crypto.randomUUID(), name, language, kind:'file', code, updatedAt:Date.now()});
+  localStorage.setItem(storageKey, JSON.stringify(files));
+}
+
 export function mountFileManager(host, language, getEditor) {
   const button = document.createElement('button');
   button.type = 'button';

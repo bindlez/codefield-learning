@@ -10,7 +10,7 @@ async function copy(source,target) {
   await mkdir(path.dirname(dest),{recursive:true});
   await copyFile(source,dest);
 }
-const entries=['manifest.json','panel.html','panel.css','panel.js','execution.js','node-adapters.js','native-editor.js','background.js','launcher.js','sandbox.html','sandbox.js','local-worker.js','javascript-trace.js'];
+const entries=['manifest.json','panel.html','panel.css','panel.js','execution.js','native-editor.js','background.js','launcher.js','sandbox.html','sandbox.js','local-worker.js'];
 for(const name of entries)await copy(path.join(root,name),name);
 const files=new Set();
 async function shared(name) {
@@ -19,17 +19,15 @@ async function shared(name) {
   if(['app/ruby-catalog.js','app/python-catalog.js'].includes(name))return;
   const from=path.join(appRoot,name);
   await copy(from,name);
-  if(!name.endsWith('.js'))return;
+  if(!name.endsWith('.js') || name==='src/vendor/acorn.js')return;
   const source=await readFile(from,'utf8');
   for(const match of source.matchAll(/(?:\bfrom\s*|\bimport\s*|new URL\(\s*)['"](\.[^'"]+)['"]/g)){
     const target=path.posix.normalize(path.posix.join(path.posix.dirname(name),match[1]));
     await shared(target);
   }
 }
-for(const name of ['app/workspace-editor.js','app/languages.js','app/problems.js','app/judge.js','app/multilang-judge.js','app/trace.js','app/problem-starter.js','src/editor.css','app/vendor/prism/LICENSE.md'])await shared(name);
+for(const name of ['app/workspace-editor.js','app/languages.js','app/problems.js','app/judge.js','app/multilang-judge.js','app/trace.js','app/problem-starter.js','src/javascript-trace.js','src/vendor/acorn-LICENSE','src/editor.css','app/vendor/prism/LICENSE.md'])await shared(name);
 const npm=path.join(root,'node_modules');
-await copy(path.join(npm,'acorn/dist/acorn.mjs'),'vendor/acorn.mjs');
-await copy(path.join(npm,'acorn/LICENSE'),'vendor/acorn-LICENSE');
 await copy(path.join(root,'pyodide-LICENSE.txt'),'vendor/pyodide-LICENSE.txt');
 for(const name of ['pyodide.js','pyodide.asm.js','pyodide.asm.wasm','python_stdlib.zip','pyodide-lock.json'])
   await copy(path.join(npm,'pyodide',name),'vendor/'+name);

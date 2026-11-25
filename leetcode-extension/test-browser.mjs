@@ -111,6 +111,7 @@ try{
   if(!live){
     const replay=await run(`(async()=>{
       const {runExample,sandboxRunner}=await import('./execution.js');
+      const {interpretedExample}=await import('./app/interpreted-examples.js');
       const frame=document.createElement('iframe');frame.hidden=true;document.body.append(frame);
       const execute=sandboxRunner(frame), rows=[];
       for(const language of ['ruby','python']){
@@ -120,6 +121,19 @@ try{
           const result=await runExample({language,source,plan:{functionName:'identity',params:[{name:'node',type}],returns:{type},tests:[{args:[sample],expected:sample,known:true}]},signal:new AbortController().signal,execute});
           rows.push({actual:result.actual,sample,error:result.error,steps:result.steps.length});
         }
+        const source=language==='ruby'?'def identity(value)\\n  value\\nend':'class Solution:\\n    def identity(self, value):\\n        return value';
+        const samples=['hello', '#{raise "not code"}'];
+        const plan={functionName:'identity',params:[{name:'value',type:'string'}],returns:{type:'string'},tests:samples.map(value=>({args:[value]}))};
+        const code=interpretedExample(language,source,plan,{trace:false});
+        const result=await execute(language,code,null,new AbortController().signal);
+        const returned=result.output?.split(/\\r?\\n/).filter(line=>line.startsWith('__CODEFIELD_CASE__')).map(line=>JSON.parse(line.slice(18)));
+        rows.push({actual:returned,sample:samples,error:result.error,steps:1});
+        const setSource=language==='ruby'?'def count_items()\\n  seen = Set.new([1,2])\\n  seen.size\\nend':'class Solution:\\n    def count_items(self):\\n        seen = set([1,2])\\n        return len(seen)';
+        const setPlan={functionName:'count_items',params:[],returns:{type:'integer'},tests:[{args:[],expected:2,known:true}]};
+        const setResult=await runExample({language,source:setSource,plan:setPlan,signal:new AbortController().signal,execute});
+        rows.push({actual:setResult.actual,sample:2,error:setResult.error,steps:setResult.steps.length});
+        if(!setResult.steps.some(step=>step.detail.toLowerCase().includes('set[') || step.detail.toLowerCase().includes('set(')))throw Error(language+' set values missing from trace');
+        if(!setResult.steps.some(step=>step.detail.includes('→ 2')))throw Error(language+' return value missing from trace');
       }
       frame.remove();return rows;
     })()`);

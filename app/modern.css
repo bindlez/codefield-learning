@@ -313,6 +313,7 @@ body { zoom: .88; }
 .playground-problem[hidden]{display:none}.playground-problem>div:first-child{flex:1;min-width:220px}.playground-problem p{margin:4px 0;max-height:110px;overflow:auto;white-space:pre-wrap}
 .problem-handoff-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.problem-handoff-actions button,.problem-handoff-actions a{padding:7px 10px;border:1px solid #49685b;border-radius:6px;background:#1c302b;color:#d7fae9}
 .playground-problem pre{flex-basis:100%;margin:0;max-height:180px;overflow:auto;white-space:pre-wrap}
+.playground-problem [data-trace]{flex-basis:100%;min-width:0}
 .model-transform{display:flex;gap:5px;flex-wrap:wrap}.model-transform strong{flex-basis:100%}.model-transform button{padding:5px 8px}
 .trace-navigation{display:flex;gap:8px;align-items:center;padding:4px 10px;border-top:1px solid #30473c}.trace-navigation[hidden]{display:none}.trace-navigation span{flex:1;font-size:12px;overflow-wrap:anywhere}.trace-navigation button{padding:4px 10px;border:1px solid #456256;border-radius:5px;background:#1c302b;color:#d7fae9}
 /* Playground: output | editor | live result, with the map aligned above the editor. */

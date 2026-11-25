@@ -1,4 +1,5 @@
-import {instrumentJavaScript, instrumentInterpreted} from './trace.js';
+import {instrumentPracticeJavaScript} from './trace.js';
+import {interpretedExample} from './interpreted-examples.js';
 import {runExamples, buildScript, describeExamplesTrace} from './multilang-judge.js';
 import {tokenizeRuby} from '../src/languages/ruby.js';
 import {tokenizePython} from '../src/languages/python.js';
@@ -980,7 +981,7 @@ function queueTrace() {
       status.textContent='Enable Live Trace to send this example to '+(language==='rust'?'Rust Playground.':'Compiler Explorer.');
       return;
     }
-    const source = test && (remote ? compiledScript(language,code,plan,true) : buildScript(language, instrumentInterpreted(language,code), plan));
+    const source = test && (remote ? compiledScript(language,code,plan,true) : interpretedExample(language,code,plan));
     if (!source) {
       status.textContent = 'Line trace is not available for this language or problem shape yet.';
       output.textContent = 'Use the solution method and a problem with supported example types.';
@@ -1010,7 +1011,7 @@ function queueTrace() {
   output.textContent = '';
   traceTimer = setTimeout(async () => {
     if (version !== traceVersion) return;
-    const instrumented = instrumentJavaScript(code);
+    const instrumented = instrumentPracticeJavaScript(code);
     traceRunner = createJudgeRunner({timeoutMs:2500});
     status.textContent = 'Running the first example…';
     const {report, results} = await traceRunner.run({

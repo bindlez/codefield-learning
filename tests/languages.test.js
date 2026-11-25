@@ -9,7 +9,8 @@ test('Python and Ruby examples call the expected solution function', () => {
   const ruby=buildScript('ruby','def two_sum(a,b); end',plan);
   assert.match(python,/getattr\(Solution\(\), "twoSum"\)/);
   assert.match(ruby,/method\(:two_sum\)/);
-  assert.equal(buildScript('python','', {...plan,params:[{type:'ListNode'}]}),null);
+  assert.match(buildScript('python','', {...plan,params:[{type:'ListNode'}]}),/class ListNode/);
+  assert.equal(buildScript('python','', {...plan,params:[{type:'NestedInteger'}]}),null);
 });
 
 test('browser worker runs only after runtime is ready and cleans up', async t => {

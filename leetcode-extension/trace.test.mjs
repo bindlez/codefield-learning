@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parse} from 'acorn';
-import {traceJavaScript} from './javascript-trace.js';
+import {parse} from '../src/vendor/acorn.js';
+import {traceJavaScript} from '../src/javascript-trace.js';
 function traced(source,...args) {
   const {code,probe}=traceJavaScript(source,parse);
   const steps=[];

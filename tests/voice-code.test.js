@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {voiceCode,voiceExpression} from '../src/voice-code.js';
 test('declarations and comparisons adapt to every supported language',()=>{
-  for(const lang of ['javascript','ruby','python','rust','cpp','csharp','java','crystal']){
+  for(const lang of ['javascript','ruby','python','rust','cpp','csharp','java','crystal','go','elixir']){
     assert.match(voiceCode('variable count equals 3',lang).code,/count = 3/);
     const block=voiceCode('if condition count greater than 2',lang);
     assert.match(block.code,/count > 2/);
@@ -11,6 +11,8 @@ test('declarations and comparisons adapt to every supported language',()=>{
   }
   assert.equal(voiceCode('variable ready equals true','python').code,'ready = True');
   assert.equal(voiceCode('variable count equals 3','rust').code,'let mut count = 3;');
+  assert.equal(voiceCode('while condition count less than 3','go').code,'for count < 3 {\n  \n}');
+  assert.equal(voiceCode('if condition count greater than 2','elixir').code,'if count > 2 do\n  \nend');
 });
 test('literal strings and unknown commands are preserved',()=>{
   assert.equal(voiceExpression('"true plus false"','python'),'"true plus false"');
