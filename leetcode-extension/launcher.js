@@ -17,6 +17,12 @@ else setInterval(syncLauncher,1000);
 
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (message.type !== 'question' || !/^[\w-]+$/.test(message.slug) || location.pathname.split('/')[2] !== message.slug) return;
+  const languageNames={'javascript':'javascript','ruby':'ruby','python':'python','python3':'python','python 3':'python','rust':'rust','c++':'cpp','c#':'csharp','java':'java','go':'go','golang':'go','elixir':'elixir','crystal':'crystal'};
+  const choices=[...document.querySelectorAll('main button,[id="main-content"] button')]
+    .filter(element=>element.getClientRects().length)
+    .map(element=>languageNames[element.textContent.trim().toLowerCase()])
+    .filter(Boolean);
+  const visibleLanguage=new Set(choices).size===1?choices[0]:null;
   const query = 'query CodefieldProblem($slug: String!) { question(titleSlug: $slug) { title titleSlug metaData exampleTestcases content codeSnippets { langSlug code } } }';
   fetch('/graphql/', {method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({query,variables:{slug:message.slug}}),signal:AbortSignal.timeout(6500)})
     .then(response => response.ok ? response.json() : null)
@@ -34,7 +40,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
         const output = /\bOutput:\s*([^\n]+?)(?=\s*(?:Explanation:|Constraints:|\n|$))/i.exec(lines)?.[1]?.trim();
         return output === undefined ? {} : {output};
       });
-      respond({title:q.title,meta:q.metaData,exampleTestcases:q.exampleTestcases,examples,
+      respond({title:q.title,meta:q.metaData,exampleTestcases:q.exampleTestcases,examples,visibleLanguage,
         snippets:Object.fromEntries((q.codeSnippets || []).map(s => [s.langSlug,s.code]))});
     }).catch(() => respond(null));
   return true;

@@ -10,8 +10,14 @@ async function copy(source,target) {
   await mkdir(path.dirname(dest),{recursive:true});
   await copyFile(source,dest);
 }
-const entries=['manifest.json','panel.html','panel.css','panel.js','execution.js','native-editor.js','background.js','launcher.js','sandbox.html','sandbox.js','local-worker.js'];
+const entries=['manifest.json','panel.html','panel.css','bootstrap.js','panel.js','execution.js','native-editor.js','background.js','launcher.js','sandbox.html','sandbox.js','local-worker.js'];
 for(const name of entries)await copy(path.join(root,name),name);
+// The source directory also works as an unpacked extension after building.
+// Inside dist the same files live at the extension root.
+const manifest=JSON.parse(await readFile(path.join(root,'manifest.json'),'utf8'));
+manifest.side_panel.default_path='panel.html';
+manifest.sandbox.pages=['sandbox.html'];
+await writeFile(path.join(out,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');
 const files=new Set();
 async function shared(name) {
   if(files.has(name))return;

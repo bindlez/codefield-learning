@@ -4,7 +4,7 @@ Open a problem on leetcode.com and click **⌘ Codefield** near the bottom right
 
 ## Install for testing
 
-In desktop Chrome or Edge, open the Extensions manager, turn on **Developer mode**, choose **Load unpacked**, and select the **dist** folder containing manifest.json. If you downloaded the zip, extract it first and select the extracted folder. Refresh any LeetCode tabs that were open during installation.
+In desktop Chrome or Edge, open the Extensions manager, turn on **Developer mode**, choose **Load unpacked**, and select the **dist** folder containing manifest.json. If you downloaded the zip, extract it first and select the extracted folder. The source directory can also be selected after its build has created the dist folder. Refresh any LeetCode tabs that were open during installation.
 
 ## Solve and replay
 

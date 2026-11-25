@@ -5,7 +5,8 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 
-const dist=fileURLToPath(new URL('./dist',import.meta.url));
+const dist=fileURLToPath(new URL(process.argv.includes('--source')?'./':'./dist',import.meta.url));
+const panelPath=process.argv.includes('--source')?'dist/panel.html':'panel.html';
 const profile=await mkdtemp(path.join(os.tmpdir(),'cf-extension-test-'));
 const browser=spawn(process.env.BROWSER_PATH || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
   ['--headless=new','--disable-gpu','--no-first-run','--disable-features=msEdgeSidebarV2','--remote-debugging-port=0','--load-extension='+dist,'--disable-extensions-except='+dist,'--user-data-dir='+profile,'about:blank'],{stdio:'ignore',windowsHide:true});
@@ -66,10 +67,10 @@ try{
   // Some headless browser builds omit native side-panel chrome; exercise its
   // actual extension page in a background tab with the problem still active.
   let target;
-  for(let i=0;i<12&&!target;i++){target=(await targets()).find(t=>t.url===prefix+'panel.html');await sleep(120);}
+  for(let i=0;i<12&&!target;i++){target=(await targets()).find(t=>t.url===prefix+panelPath);await sleep(120);}
   if(!target){
     console.log('Headless browser omits native side panel; opening the same extension document.');
-    const t=await root.send('Target.createTarget',{url:prefix+'panel.html',background:true});
+    const t=await root.send('Target.createTarget',{url:prefix+panelPath,background:true});
     await root.send('Target.activateTarget',{targetId:pageTarget.id});
     target=await until(async()=>(await targets()).find(v=>v.id===t.targetId));
   }else console.log('On-page launcher opened browser side panel.');

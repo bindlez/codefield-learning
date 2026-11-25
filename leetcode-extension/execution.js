@@ -81,7 +81,8 @@ export async function runExample({language,source,plan,signal,execute}) {
       else if (line) logs.push(line);
     }
   }
-  return {actual,steps,logs,error:result.error || (!returned?'The example did not return a readable result.':'')};
+  const error=(result.error || (!returned?'The example did not return a readable result.':'')).replace(/\x1b\[[0-9;]*[A-Za-z]/g,'');
+  return {actual,steps,logs,error};
 }
 
 export function outcome(result,test,type,slug) {

@@ -30,7 +30,7 @@ export function modelPanel(host,language,getEditor,onInspect,expanded=false) {
       worker.onmessage=({data})=>{
         if(data.id!==revision)return;
         graph=data;items.replaceChildren();detail.textContent='';
-        for(const node of graph.nodes.filter(n=>!['LocalVariableRead','String','Integer'].includes(n.kind)).slice(-100)){
+        for(const node of graph.nodes.filter(n=>!['LocalVariableRead','String','Integer','Parameters','ErrorRecovery','Statements','Program'].includes(n.kind)).slice(-100)){
           const button=document.createElement('button');button.type='button';button.textContent=(node.name||node.kind)+' · '+node.type;
           button.onclick=()=>{display(node);if(node.line){const ed=getEditor(),lines=ed.getValue().split('\n');const offset=lines.slice(0,node.line-1).reduce((sum,s)=>sum+s.length+1,0);const pos=offset+(node.column || 0);if(ed.getValue().slice(pos,pos+node.source.length)===node.source)ed.selectRange(pos,pos+node.source.length);}};
           items.append(button);

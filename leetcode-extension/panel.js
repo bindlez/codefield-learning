@@ -119,11 +119,12 @@ async function openProblem(tabId,slug) {
   plan=testsFromProblem(problem);
   // Some questions publish a starter without a runnable signature. Keep editing available.
   $('title').textContent=problem.title;
-  notice(live?'':seed?'Using bundled examples.':'Enter a function name and arguments to trace a custom example.');
+  const guidance='Write in the Codefield editor below to see the live trace.';
+  notice([guidance,live?'':seed?'Using bundled examples.':'Enter a function name and arguments to trace a custom example.'].filter(Boolean).join(' '));
   $('example').replaceChildren(...plan.tests.map((_,i)=>new Option('Example '+(i+1),i)),new Option('Custom example','custom'));
   $('language').replaceChildren(...Object.entries(languages).map(([id,name])=>new Option(name,id)));
   const preferred=read('codefield.language.'+slug);
-  const selected=Object.hasOwn(languages,preferred)?preferred:initial?.language || 'javascript';
+  const selected=Object.hasOwn(languages,preferred)?preferred:initial?.language || live?.visibleLanguage || 'javascript';
   $('workspace').hidden=false;fillExample();
   switchLanguage(selected,initial?.language===selected?initial.code:undefined);
 }
