@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="./modern.css"></head>
 <body>
 <header class="top">
-  <a class="brand" href="./index.html" aria-label="Codefield home"><span class="brand-icon" aria-hidden="true">⌘</span> codefield <span class="badge">ALPHA 0.5.5</span></a>
+  <a class="brand" href="./index.html" aria-label="Codefield home"><span class="brand-icon" aria-hidden="true">⌘</span> codefield <span class="badge">ALPHA 0.6.0</span></a>
   <nav class="modes" aria-label="Workspace modes">
     <a href="./index.html">Playground</a>
     <a href="./beginner.html">Beginner</a><a href="./learn.html">Learn</a>
@@ -29,7 +29,7 @@
 <main class="practice-shell">
   <aside class="problem-list-panel" aria-label="Problem browser"><details id="problem-browser" open><summary class="browser-summary">Browse or search problems</summary>
     <div class="problem-filters">
-      <section class="path-controls" aria-label="Practice paths and timed session"><strong>Practice path</strong><label for="path-topic">Topic</label><select id="path-topic"><option value="Array">Arrays</option><option value="String">Strings</option><option value="Hash Table">Hash tables</option></select><div class="open-any"><button id="path-next" class="pill-button" type="button">Next in path</button><button id="path-random" class="pill-button" type="button">Random</button></div><p id="path-status" role="status"></p><strong>Timed practice</strong><div class="open-any"><label for="sprint-minutes">Minutes</label><select id="sprint-minutes"><option>15</option><option>25</option><option>45</option></select><button id="sprint-start" class="pill-button" type="button">Start timer</button></div><p id="sprint-status" role="timer">Ready when you are.</p><button id="sprint-next" class="pill-button" type="button" hidden>Next problem →</button></section>
+      <details class="path-disclosure"><summary>Paths &amp; timed practice</summary><section class="path-controls" aria-label="Practice paths and timed session"><strong>Practice path</strong><label for="path-topic">Topic</label><select id="path-topic"><option value="Array">Arrays</option><option value="String">Strings</option><option value="Hash Table">Hash tables</option></select><div class="open-any"><button id="path-next" class="pill-button" type="button">Next in path</button><button id="path-random" class="pill-button" type="button">Random</button></div><p id="path-status" role="status"></p><strong>Timed practice</strong><div class="open-any"><label for="sprint-minutes">Minutes</label><select id="sprint-minutes"><option>15</option><option>25</option><option>45</option></select><button id="sprint-start" class="pill-button" type="button">Start timer</button></div><p id="sprint-status" role="timer">Ready when you are.</p><button id="sprint-next" class="pill-button" type="button" hidden>Next problem →</button></section></details>
       <label class="sr-only" for="problem-search">Search problems</label>
       <input id="problem-search" type="search" placeholder="Search by title or keyword…" autocomplete="off">
       <div class="difficulty-tabs" role="group" aria-label="Difficulty">
@@ -121,7 +121,7 @@
 
       <section class="workbench" aria-label="Solution editor">
         <div class="panel-bar">
-          <div class="panel-title"><span class="ruby-dot">◆</span><label for="practice-language" class="sr-only">Language</label><select id="practice-language" aria-label="Solution language"><option value="javascript">JavaScript</option><option value="ruby">Ruby</option><option value="python">Python</option><option value="rust">Rust</option><option value="cpp">C++</option><option value="csharp">C#</option><option value="java">Java</option><option value="crystal">Crystal</option></select><span class="saved" id="draft-status">Draft saved</span></div>
+          <div class="panel-title"><span class="ruby-dot">◆</span><label for="practice-language" class="sr-only">Language</label><select id="practice-language" aria-label="Solution language"><option value="javascript">JavaScript</option><option value="ruby">Ruby</option><option value="python">Python</option><option value="rust">Rust</option><option value="cpp">C++</option><option value="csharp">C#</option><option value="java">Java</option><option value="crystal">Crystal</option><option value="go">Go</option><option value="elixir">Elixir</option></select><span class="saved" id="draft-status">Draft saved</span></div>
           <div class="actions">
             <button id="practice-reset" class="text-button" type="button">Reset code</button>
           </div>

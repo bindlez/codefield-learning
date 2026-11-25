@@ -80,16 +80,17 @@ function normalize(value, type) {
 
 /** Deep, type-aware comparison. Doubles use a small relative tolerance. */
 export function compareValues(actual, expected, type = '') {
-  if (type === 'double') return Math.abs(Number(actual) - Number(expected)) <= 1e-5 * Math.max(1, Math.abs(Number(expected)));
+  if (type === 'TreeNode' && Array.isArray(actual) && Array.isArray(expected)) return compareValues(trailingNulls(actual), trailingNulls(expected), '');
+  if (type === 'double') return typeof actual === 'number' && typeof expected === 'number' && Number.isFinite(actual) && Number.isFinite(expected) && Math.abs(actual - expected) <= 1e-5 * Math.max(1, Math.abs(expected));
   if (Array.isArray(expected)) {
     if (!Array.isArray(actual) || actual.length !== expected.length) return false;
     const inner = type.replace(/\[\]$/, '');
     return expected.every((item, index) => compareValues(actual[index], item, inner));
   }
   if (expected === null) return actual === null || actual === undefined;
-  if (typeof expected === 'number') return Number(actual) === expected;
+  if (typeof expected === 'number') return typeof actual === 'number' && actual === expected;
   if (typeof expected === 'boolean') return actual === expected;
-  return String(actual) === String(expected);
+  return actual === expected;
 }
 
 /** Build the tests for a problem, whether it came from the built-in set or LeetCode. */
@@ -133,7 +134,7 @@ const toJsLiteral = value => JSON.stringify(value === undefined ? null : value);
  * Produce the source evaluated in the worker. It defines the LeetCode node helpers,
  * evaluates the learner's code, runs each test, and posts a serialisable report.
  */
-export function buildJudgeSource({ code, functionName, params = [], returns = { type: 'integer' }, tests = [], id = 0 }) {
+export function buildJudgeSource({ code, functionName, params = [], returns = { type: 'integer' }, tests = [], id = 0, boundedLogs = false }) {
   if (!identifier.test(functionName || '')) throw new Error('This problem does not expose a callable function.');
   const result = `"use strict";
 const __id = ${Number(id) || 0};
@@ -151,12 +152,12 @@ function __convert(value, type) { if (type === 'ListNode') return __fromList(val
 function __serialize(value) { if (value === undefined) return null; if (value && typeof value === 'object' && 'val' in value && 'next' in value) return __toList(value); if (value && typeof value === 'object' && 'val' in value && ('left' in value || 'right' in value)) return __toTree(value); return value; }
 function __trim(value) { if (!Array.isArray(value)) return value; const copy = value.slice(); while (copy.length && copy.at(-1) === null) copy.pop(); return copy; }
 function __equal(actual, expected, type) {
-  if (type === 'double') return Math.abs(Number(actual) - Number(expected)) <= 1e-5 * Math.max(1, Math.abs(Number(expected)));
+  if (type === 'double') return typeof actual === 'number' && typeof expected === 'number' && Number.isFinite(actual) && Number.isFinite(expected) && Math.abs(actual - expected) <= 1e-5 * Math.max(1, Math.abs(expected));
   if (Array.isArray(expected)) { if (!Array.isArray(actual) || actual.length !== expected.length) return false; const inner = type.replace(/\\[\\]$/, ''); return expected.every((item, index) => __equal(actual[index], item, inner)); }
   if (expected === null) return actual === null || actual === undefined;
-  if (typeof expected === 'number') return Number(actual) === expected;
+  if (typeof expected === 'number') return typeof actual === 'number' && actual === expected;
   if (typeof expected === 'boolean') return actual === expected;
-  return String(actual) === String(expected);
+  return actual === expected;
 }
 function __clone(value) { if (value === null || value === undefined) return value; return JSON.parse(JSON.stringify(value)); }
 const __results = [];
@@ -175,18 +176,25 @@ if (!__fn) {
     const test = __tests[index];
     const logs = [];
     const original = console.log;
-    console.log = (...args) => logs.push(args.map(item => typeof item === 'string' ? item : JSON.stringify(item)).join(' '));
+    console.log = (...args) => {
+      ${boundedLogs ? "if (logs.length === 200) logs.push('Further console output omitted.'); if (logs.length > 200) return;" : ''}
+      const line=args.map(item => {
+        if(typeof item==='string')return item;
+        try{return JSON.stringify(item) ?? String(item);}catch{return String(item);}
+      }).join(' ');
+      logs.push(${boundedLogs ? 'line.slice(0,2000)' : 'line'});
+    };
     const started = Date.now();
     try {
       const args = test.args.map((value, position) => __convert(__clone(value), __params[position]?.type || 'integer'));
       const value = __fn.apply(null, args);
       const actual = __serialize(value);
       console.log = original;
-      const expected = test.expected === undefined ? undefined : __trim(__serialize(test.expected));
+      const expected = test.expected === undefined ? undefined : (__returnType === 'TreeNode' ? __trim(__serialize(test.expected)) : __serialize(test.expected));
       const known = test.expected !== undefined;
       __results.push({
         index,
-        passed: known ? __equal(__trim(actual), expected, __returnType) : null,
+        passed: known ? __equal(__returnType === 'TreeNode' ? __trim(actual) : actual, expected, __returnType) : null,
         input: __params.map((param, position) => param.name + ' = ' + JSON.stringify(test.args[position])).join(', '),
         expected: known ? test.expected : null,
         actual,

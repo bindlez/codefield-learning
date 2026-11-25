@@ -1,0 +1,19 @@
+// Language-specific guidance accompanies the common algorithm lessons.
+export const lessonLanguageNotes = {
+  welcome: {ruby:'Use puts to print a value followed by a newline. Ruby returns the last expression of a method automatically.',python:'Use print() to display values. Python uses indentation to group statements.'},
+  'reading-code': {ruby:'Assignments update local variables. Read each expression using the current values before moving to the next line.',python:'Assignments bind names to values. Follow the statements in order and track each new binding.'},
+  'values-types': {ruby:'Strings use quotes. Interpolate values into a double-quoted string with #{expression}.',python:'Strings use quotes. An f-string such as f"{count}" evaluates an expression inside braces.'},
+  'functions-scope': {ruby:'Define a method with def and end. Its final expression becomes the return value unless you return earlier.',python:'Define a function with def and a colon. Indent its body and use return to send a value back.'},
+  'arrays-loops': {ruby:'Arrays preserve order. each visits their elements, while map creates an array of transformed values.',python:'Lists preserve order. Use for item in items to visit elements and a list comprehension to create a transformed list.'},
+  'objects-maps': {ruby:'A Hash maps keys to values. Hash.new(0) provides a zero default for counting without inserting missing keys.',python:'A dict maps keys to values. counts.get(key, 0) provides a default when a key is missing.'},
+  'strings-regex': {ruby:'String#scan collects matches. Use /\\d/ to find digits and join to combine the matches.',python:'Iterate over a string to inspect characters. str.isdigit() identifies digit characters, and join combines a sequence.'},
+  'hash-maps': {ruby:'Require the set library to use Set. add stores a value and include? checks membership.',python:'set() creates an empty set. add stores an element, and the in operator checks membership.'},
+  'two-pointers': {ruby:'Use array[index] to inspect both ends. A while loop can move the left and right indices independently.',python:'Use list[index] for each end. Python supports assigning both pointers in one statement.'},
+  'sliding-window': {ruby:'Array#sum adds the initial window. A range can visit each incoming index as the window moves.',python:'sum(nums[:k]) computes the first window. Each step adds the incoming item and subtracts the outgoing item.'},
+  'binary-search': {ruby:'Integer division with / returns an Integer when both operands are integers. Maintain the search boundaries carefully.',python:'Use // for integer division when computing a midpoint. A half-open interval avoids accessing an index beyond the list.'},
+  recursion: {ruby:'A base case stops recursive calls. Each return multiplies the current n by the smaller result.',python:'A base case stops recursive calls. Each stack frame retains its own n until the smaller call returns.'},
+  'dynamic-programming': {ruby:'Store previously computed answers in an array, then use earlier entries to compute the next answer.',python:'Store earlier results in a list. append adds each new result after the values it depends on.'},
+  'trees-graphs': {ruby:'A Hash of arrays represents adjacency. A Set tracks visited nodes so cycles do not repeat work.',python:'A dict of lists represents adjacency. A set tracks visited nodes so cycles do not repeat work.'},
+  complexity: {ruby:'A nested range beginning at i + 1 visits each unordered pair once. Count loop iterations to see the quadratic growth.',python:'Nested range loops can count pairs without repeating them. The number of iterations grows quadratically with input size.'},
+  'debugging-tests': {ruby:'Check the condition with an odd number, an even number, an empty array, and multiple even values.',python:'Test the condition with odd and even values, an empty list, and repeated even numbers. Compare actual output to expected output.'}
+};

@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Codefield for LeetCode",
+  "description": "Edit beside the problem and explore each example with a live execution trace.",
+  "version": "1.0.0",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "sidePanel",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://leetcode.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://play.rust-lang.org/*",
+    "https://godbolt.org/*"
+  ],
+  "action": {
+    "default_title": "Open Codefield for LeetCode"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://leetcode.com/*"
+      ],
+      "js": [
+        "launcher.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "sandbox": {
+    "pages": [
+      "sandbox.html"
+    ]
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none';",
+    "sandbox": "sandbox allow-scripts; default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; worker-src blob:; connect-src 'none';"
+  }
+}

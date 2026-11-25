@@ -68,6 +68,20 @@ const runHarness = source => {
   return message;
 };
 
+test('does not mark wrong types or trailing null array elements as correct', () => {
+  for (const [code, expected, type] of [
+    ['return null;', 0, 'integer'],
+    ['return "2";', 2, 'integer'],
+    ['return [1,null];', [1], 'integer[]'],
+    ['return null;', 0, 'double']
+  ]) {
+    assert.equal(compareValues(code.includes('[1') ? [1, null] : code.includes('"2"') ? '2' : null, expected, type), false);
+    const report = runHarness(buildJudgeSource({code:`function solve(){${code}}`,functionName:'solve',returns:{type},tests:[{args:[],expected}]}));
+    assert.equal(report.results[0].passed, false, code);
+  }
+  assert.equal(compareValues([1, null], [1], 'TreeNode'), true);
+});
+
 test('runs a two-sum solution against typed tests', () => {
   const source = buildJudgeSource({
     id: 3,

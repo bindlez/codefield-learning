@@ -12,7 +12,10 @@ import { runOnce } from './run-js.js';
 import { initLibrary } from './library.js';
 import {completeWithRuntime} from './shared-completion.js';
 import {lessonSolutions} from './lesson-solutions.js';
+import {lessonLanguageNotes} from './lesson-language-notes.js';
 import {cppLessonSolutions} from './lesson-cpp-solutions.js';
+import {goLessonSolutions} from './lesson-go-solutions.js';
+import {javaLessonSolutions} from './lesson-java-solutions.js';
 import {rustLessonSolutions} from './lesson-rust-solutions.js';
 import {csharpLessonSolutions} from './lesson-csharp-solutions.js';
 
@@ -363,7 +366,12 @@ function checkpointNode(lesson) {
   solutionBox.className = 'solution-box';
   solutionBox.hidden = true;
   const solutionPre = document.createElement('pre');
-  const selectedSolution=()=>lessonLanguage==='javascript' ? checkpoint.solution : lessonLanguage==='cpp' ? cppLessonSolutions[lesson.id] : lessonLanguage==='rust' ? rustLessonSolutions[lesson.id] : lessonLanguage==='csharp' ? csharpLessonSolutions[lesson.id] : lessonSolutions[lesson.id]?.[lessonLanguage];
+  const languageNote = document.createElement('p');
+  languageNote.className = 'lesson-language-note';
+  languageNote.setAttribute('aria-live', 'polite');
+  const compiledSolutions = {go:goLessonSolutions, java:javaLessonSolutions, cpp:cppLessonSolutions, rust:rustLessonSolutions, csharp:csharpLessonSolutions};
+  const selectedSolution = () => lessonLanguage === 'javascript' ? checkpoint.solution
+    : compiledSolutions[lessonLanguage]?.[lesson.id] ?? lessonSolutions[lesson.id]?.[lessonLanguage];
   solutionPre.textContent = selectedSolution() || '';
   const useSolution = document.createElement('button');
   useSolution.type = 'button';
@@ -375,11 +383,13 @@ function checkpointNode(lesson) {
     toast('Reference solution copied into the editor. Read it, then change something.');
   };
   solutionBox.append(useSolution, solutionPre);
-  body.append(editorHost, guideHost, actions, hints, result, solutionBox);
+  body.append(languageNote, editorHost, guideHost, actions, hints, result, solutionBox);
   card.append(head, body);
 
   function mountCheckpoint() {
     if (!editorHost.isConnected) return;
+    languageNote.textContent = lessonLanguageNotes[lesson.id]?.[lessonLanguage] || '';
+    languageNote.hidden = !languageNote.textContent;
     checkpointEditor?.destroy();
     methodCard.hide();
     solution.hidden = !selectedSolution();

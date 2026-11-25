@@ -1,6 +1,8 @@
-# Codefield 0.5.5-alpha
+# Codefield 0.6.0-alpha
 
-This release adds a Prism-backed Ruby Code Model, Algorithm Studio, browser-stored Projects, expanded practice paths and harder variants, and supported example runners for eight languages. Practice and lesson editors share Code Model and method suggestions. The PRD and the remaining work for the next pass are in [docs/next-pass.md](docs/next-pass.md). Details below describe earlier features where still applicable.
+To use the Codefield editor directly beside a problem on the LeetCode website, install the separate [Codefield for LeetCode extension](leetcode-extension/README.md). Its bundled local runners provide step replay for JavaScript, Ruby and Python without starting the app server.
+
+This release adds the LeetCode browser extension, a shared file drawer, method previews, additional language checkpoints and voice editing commands. The playground, practice and learning workspaces share the editor. See the [release notes](docs/release-0.6.0-alpha.md) for verified coverage and the [next-pass backlog](docs/next-pass.md) for remaining work.
 
 On Windows, double-click `Start Codefield.cmd`. To enable the website's **Start local server** link, run `Enable site launcher.ps1` once. The launcher uses the project directory containing that script. Java, Crystal, Rust, C++ and C# execution use remote services. Speech recognition depends on browser support and may require a network connection.
 

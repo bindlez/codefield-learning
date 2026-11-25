@@ -12,7 +12,7 @@ function readStore(){try{return JSON.parse(localStorage.getItem(key) || '{}');}c
 export function initPlaygroundProblem({editor,language,changeLanguage,backup}) {
   let active=null, runner=null, revision=0, checkTimer=null;
   const remoteConsent=new Set();
-  const isRemote=lang=>['rust','cpp','csharp','java','crystal'].includes(lang);
+  const isRemote=lang=>['rust','cpp','csharp','java','crystal','go','elixir'].includes(lang);
   const bar=document.createElement('section');
   bar.className='playground-problem panel';bar.hidden=true;
   bar.innerHTML='<div><strong></strong><p></p></div><div class="problem-handoff-actions"><button type="button" data-check>Check examples</button><button type="button" data-remote hidden>Enable remote auto-check</button><a data-return>Continue in practice →</a><button type="button" data-close>Close problem</button></div><pre role="status"></pre>';
@@ -86,6 +86,6 @@ export function initPlaygroundProblem({editor,language,changeLanguage,backup}) {
   bar.querySelector('[data-close]').onclick=close;
   link.onclick=event=>{if(!saveDraft()){event.preventDefault();return;} };
   const params=new URLSearchParams(location.search),slug=params.get('problem'),lang=params.get('language');
-  if(slug && ['javascript','ruby','python','rust','cpp','csharp','java','crystal'].includes(lang))open(slug,lang,params.get('variant')==='harder');
+  if(slug && ['javascript','ruby','python','rust','cpp','csharp','java','crystal','go','elixir'].includes(lang))open(slug,lang,params.get('variant')==='harder');
   return {onEdit(){if(active){revision++;runner?.dispose();runner=null;bar.querySelector('[data-check]').disabled=false;saveDraft();output.textContent=isRemote(active.language)&&!remoteConsent.has(active.language)?'Draft saved. Enable remote auto-check to send code to the compiler as you pause.':'Draft saved. Checking examples after you pause…';scheduleCheck();}},onLanguageChange(){if(active && language()!==active.language){const {problem,variant}=active,lang=language();active=null;revision++;clearTimeout(checkTimer);runner?.dispose();runner=null;queueMicrotask(()=>open(problem.slug,lang,variant));}}};
 }

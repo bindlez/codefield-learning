@@ -12,6 +12,7 @@ import {completeWithRuntime} from './shared-completion.js';
 import {content} from './content.js';
 import {methodGuide} from './method-guides.js';
 import {problemStarter} from './problem-starter.js';
+import {voiceCode} from '../src/voice-code.js';
 const $ = selector => document.querySelector(selector);
 const language = $('#language'), status = $('#status'), output = $('#output');
 const initialQuery=new URLSearchParams(location.search);
@@ -132,7 +133,7 @@ async function suggestMethods() {
   if(spokenFeedback.checked) speak(message);
 }
 async function run() {
-  if (['rust','cpp','csharp','java','crystal'].includes(language.value) && !remoteConsent.has(language.value)) { askConfirmation('run-remote','This sends your code to '+(language.value==='rust'?'Rust Playground':'Compiler Explorer')+'. Say “confirm” to run or “cancel”.'); return; }
+  if (['rust','cpp','csharp','java','crystal','go','elixir'].includes(language.value) && !remoteConsent.has(language.value)) { askConfirmation('run-remote','This sends your code to '+(language.value==='rust'?'Rust Playground':'Compiler Explorer')+'. Say “confirm” to run or “cancel”.'); return; }
   cancelPreview();controller?.abort(); controller = new AbortController();
   const current = controller;
   output.textContent = 'Running…';
@@ -167,9 +168,13 @@ else {
     for (let i=event.resultIndex;i<event.results.length;i++) {
       if (!event.results[i].isFinal) { $('#transcript').textContent=event.results[i][0].transcript; continue; }
       const text=event.results[i][0].transcript.trim(); $('#transcript').textContent=text;
+      const template=voiceCode(text,language.value);
+      if(template){const start=editor.getCaret();editor.insert(template.code);if(template.caret!==undefined)editor.selectRange(start+template.caret,start+template.caret);status.textContent='Inserted '+languages[language.value]+' code. Say undo to reverse.';continue;}
       if(/^read (problem|statement)[.!]?$/i.test(text)){if(problem)speak(problem.title+'. '+textOf(problem.content || ''));else status.textContent='Open a practice problem first.';continue;}
       if(/^read example[.!]?$/i.test(text)){if(problem)speak($('#voice-example').textContent);else status.textContent='Open a practice problem first.';continue;}
       if(/^read (code|current code)[.!]?$/i.test(text)){speak(editor.getValue());continue;}
+      if(/^read (current )?line[.!]?$/i.test(text)){const source=editor.getValue(),at=editor.getCaret(),start=source.lastIndexOf('\n',at-1)+1,end=source.indexOf('\n',at);speak(source.slice(start,end<0?source.length:end)||'Empty line');continue;}
+      if(/^go to (line start|start of line|line end|end of line)[.!]?$/i.test(text)){const source=editor.getValue(),at=editor.getCaret(),start=source.lastIndexOf('\n',at-1)+1,end=source.indexOf('\n',at),pos=/start/i.test(text)?start:end<0?source.length:end;editor.selectRange(pos,pos);status.textContent='Cursor moved to '+(/start/i.test(text)?'start':'end')+' of line.';continue;}
       if(/^next problem[.!]?$/i.test(text)){
         const current=problem?.slug;
         catalogIndex().then(items=>{const candidates=items.filter(item=>!item.paidOnly && item.slug!==current && !practiceStore().attempts?.[item.slug]?.passed);if(candidates.length)loadProblem(candidates[0].slug);else status.textContent='No further problem found.';}).catch(error=>{status.textContent=error.message;});

@@ -1,0 +1,17 @@
+{
+  "name": "codefield-leetcode",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test trace.test.mjs",
+    "test:browser": "node test-browser.mjs",
+    "test:compilers": "node test-compilers.mjs"
+  },
+  "dependencies": {
+    "@ruby/4.0-wasm-wasi": "2.10.1",
+    "acorn": "8.15.0",
+    "pyodide": "0.27.7"
+  }
+}

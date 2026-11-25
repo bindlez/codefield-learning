@@ -5,9 +5,10 @@ import {tokenizeRust} from '../src/languages/rust.js';
 import {tokenizeCpp} from '../src/languages/cpp.js';
 import {rustProgram} from './rust-snippet.js';
 import {cppProgram} from './cpp-snippet.js';
+import {tokenizeGo,tokenizeElixir} from '../src/languages/go-elixir.js';
 
-export const languages = {javascript:'JavaScript', ruby:'Ruby', python:'Python', rust:'Rust', cpp:'C++', csharp:'C#',java:'Java',crystal:'Crystal'};
-export const tokenizers = {javascript:tokenizeJavaScript, ruby:tokenizeRuby, python:tokenizePython, rust:tokenizeRust, cpp:tokenizeCpp, csharp:tokenizeCpp,java:tokenizeCpp,crystal:tokenizeRuby};
+export const languages = {javascript:'JavaScript', ruby:'Ruby', python:'Python', rust:'Rust', cpp:'C++', csharp:'C#',java:'Java',crystal:'Crystal',go:'Go',elixir:'Elixir'};
+export const tokenizers = {javascript:tokenizeJavaScript, ruby:tokenizeRuby, python:tokenizePython, rust:tokenizeRust, cpp:tokenizeCpp, csharp:tokenizeCpp,java:tokenizeCpp,crystal:tokenizeRuby,go:tokenizeGo,elixir:tokenizeElixir};
 export function languageOptions(select, selected = 'javascript') {
   for (const [id, name] of Object.entries(languages)) select.add(new Option(name, id));
   select.value = selected;
@@ -38,7 +39,8 @@ export async function runProgram(language, code, {signal} = {}) {
       if (language === 'ruby') worker.postMessage({type:'init'});
     });
   }
-  if (!['rust','cpp','csharp','java','crystal'].includes(language)) return {ok:false,error:'Unsupported language.',output:''};
+  if (language === 'elixir') return {ok:false, output:'', error:'Elixir execution is unavailable. Export your .exs file to run locally.'};
+  if (!['rust','cpp','csharp','java','crystal','go'].includes(language)) return {ok:false,error:'Unsupported language.',output:''};
   const controller = new AbortController();
   const abort = () => controller.abort();
   signal?.addEventListener('abort', abort, {once:true});
@@ -50,7 +52,7 @@ export async function runProgram(language, code, {signal} = {}) {
       method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,
       body:JSON.stringify({channel:'stable',mode:'debug',edition:'2021',crateType:'bin',tests:false,code:rustProgram(code).code,backtrace:false})
     });
-    else response = await fetch('https://godbolt.org/api/compiler/' + ({csharp:'dotnet100csharpcoreclr',cpp:'g132',java:'java26021',crystal:'crystal192'}[language]) + '/compile', {
+    else response = await fetch('https://godbolt.org/api/compiler/' + ({csharp:'dotnet100csharpcoreclr',cpp:'g132',java:'java26021',crystal:'crystal192',go:'gl1260'}[language]) + '/compile', {
       method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},signal:controller.signal,
       body:JSON.stringify({source:language === 'cpp' ? cppProgram(code).code : code,options:{userArguments:language === 'cpp' ? '-std=c++20' : '',compilerOptions:{executorRequest:true},filters:{execute:true},tools:[],libraries:[]},lang:language === 'cpp' ? 'c++' : language,allowStoreCodeDebug:false})
     });
@@ -60,7 +62,8 @@ export async function runProgram(language, code, {signal} = {}) {
     const lines = entries => (entries || []).map(item => item.text || '').join('\n').replace(/\x1b\[[0-9;]*[A-Za-z]/g,'');
     const output = lines(result.execResult?.stdout || result.stdout);
     const errors = [lines(result.buildResult?.stderr),lines(result.execResult?.stderr),lines(result.stderr)].filter(Boolean).join('\n');
-    const exitCode = result.execResult?.code ?? result.code;
+    const exitCode = result.execResult?.code ?? (result.didExecute === true ? result.code : undefined);
+    if(typeof exitCode !== 'number')return {ok:false,output,error:errors || 'The compiler did not return an execution result.'};
     return {ok:exitCode === 0,output,error:exitCode === 0 ? '' : errors || 'Compilation or execution failed.'};
   } catch(error) {
     return {ok:false,output:'',error:error.name === 'AbortError' ? 'Execution timed out.' : error.message};

@@ -19,6 +19,9 @@ test('recognizes speech-friendly counts and method context', () => {
   assert.deepEqual(parseVoiceCommand('highlight tally.'), {type:'highlight-name',name:'tally'});
   assert.deepEqual(parseVoiceCommand('open parenthesis'), {type:'insert-symbol',text:'('});
   assert.deepEqual(parseVoiceCommand('semicolon'), {type:'insert-symbol',text:';'});
+  assert.deepEqual(parseVoiceCommand('equals equals'), {type:'insert-symbol',text:' == '});
+  assert.deepEqual(parseVoiceCommand('greater than or equal'), {type:'insert-symbol',text:' >= '});
+  assert.deepEqual(parseVoiceCommand('underscore'), {type:'insert-symbol',text:'_'});
 });
 
 test('ambiguous names provide ordered exact token matches', () => {

@@ -1,4 +1,6 @@
 import {script} from './java-crystal.js';
+import {goScript} from './go-practice.js';
+import {elixirScript} from './elixir-practice.js';
 const dialects = {
   rust: {integer:'i32',boolean:'bool',string:'String',double:'f64'},
   cpp: {integer:'int',boolean:'bool',string:'std::string',double:'double'},
@@ -54,13 +56,18 @@ function probes(lang,code) {
   return code.split('\n').map((line,i)=>line.replace(pattern,(_,start,name,eq,expr,end)=>{
     const label='L'+(i+1)+' '+name;
     // Rust's generic initializer need not implement Debug. Log execution, preserve its type.
-    if(lang==='rust') return start+name+eq+'{ let cf_value = '+expr+'; if cf_tick() { println!("[step] '+label+'"); } cf_value };'+end;
+    if(lang==='rust') {
+      const value=eq.includes(':')?' = {}", cf_value':'"';
+      return start+name+eq+'{ let cf_value = '+expr+'; if cf_tick() { println!("[step] '+label+value+'); } cf_value };'+end;
+    }
     if(lang==='csharp') return start+name+eq+'CfTrace.Value("'+label+'", '+expr+');'+end;
     return start+name+eq+'cf_value("'+label+'", ('+expr+'));'+end;
   })).join('\n');
 }
 
 export function compiledScript(lang,source,plan,trace=false) {
+  if(lang==='go')return goScript(source,plan,trace);
+  if(lang==='elixir')return elixirScript(source,plan);
   if(lang==='java'||lang==='crystal')return script(lang,source,plan,trace);
   if(!Object.hasOwn(dialects,lang) || !/^[A-Za-z_]\w*$/.test(plan?.functionName||'') || !plan.tests?.length) return null;
   const params=plan.params||[];

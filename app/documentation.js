@@ -1,5 +1,7 @@
 // Official references are loaded only when a learner requests a method.
 export function documentationUrl(language, type, method, owner) {
+  if(language==='go')return ['strings','slices','maps','fmt','strconv','sort'].includes(type)?'https://pkg.go.dev/'+type+'#'+encodeURIComponent(method):'https://go.dev/doc/';
+  if(language==='elixir')return ['Enum','String','Map','MapSet','List','Tuple','IO','Integer'].includes(type)?'https://hexdocs.pm/elixir/'+type+'.html':'https://hexdocs.pm/elixir/';
   if (language === 'python') {
     const target={String:'str',Array:'list',Hash:'dict',Set:'set'}[type];
     return target ? 'https://docs.python.org/3/library/stdtypes.html#'+target+'.'+encodeURIComponent(method) : 'https://docs.python.org/3/';

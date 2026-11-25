@@ -8,7 +8,7 @@ export function parseVoiceCommand(transcript) {
   if (named) return {type:'highlight-name', name:named[1]};
   const method = /^dot\s+([a-z_$][\w$]*)$/i.exec(text);
   if (method) return {type:'insert-method', name:method[1]};
-  const symbols = {'open parenthesis':'(', 'close parenthesis':')', 'open bracket':'[', 'close bracket':']', 'open brace':'{', 'close brace':'}', 'comma':',', 'colon':':', 'semicolon':';', 'equals':' = ', 'plus':' + ', 'minus':' - ', 'asterisk':'*', 'slash':'/', 'quote':'"', 'single quote':"'", 'space':' '};
+  const symbols = {'open parenthesis':'(', 'close parenthesis':')', 'open paren':'(', 'close paren':')', 'open bracket':'[', 'close bracket':']', 'open brace':'{', 'close brace':'}', 'comma':',', 'colon':':', 'semicolon':';', 'equals':' = ', 'equals equals':' == ', 'not equals':' != ', 'less than':' < ', 'greater than':' > ', 'less than or equal':' <= ', 'greater than or equal':' >= ', 'plus':' + ', 'minus':' - ', 'asterisk':'*', 'multiply':' * ', 'slash':'/', 'divide':' / ', 'modulo':' % ', 'underscore':'_', 'quote':'"', 'single quote':"'", 'space':' '};
   if (Object.hasOwn(symbols,text.toLowerCase())) return {type:'insert-symbol',text:symbols[text.toLowerCase()]};
   return {type:'unknown'};
 }

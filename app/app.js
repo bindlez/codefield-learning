@@ -1,4 +1,6 @@
 import {initPlaygroundProblem} from './playground-problem.js';
+import {methodPreview,previewText} from '../src/method-preview.js';
+import {sharedCompletion} from './shared-completion.js';
 import {runProgram} from './languages.js';
 import {pythonMethods,pythonGuide} from './python-methods.js';
 import {officialGuide} from './official-guide.js';
@@ -168,6 +170,11 @@ function documentationFor(label,type){
  });
 }
 async function complete(context){
+ if(['go','elixir'].includes(state.language)){
+  const items=sharedCompletion(state.language,editor.getValue(),editor.getCaret(),context);
+  const result={methods:items.map(x=>x.label),receiverType:context.receiver,owners:{}};
+  return items.map(item=>({...item,explore:{context,result,inferred:null,language:state.language}}));
+ }
  let inferred=inferContext(editor.getValue(),editor.getCaret(),state.language,context.receiver,context.chain);
  if(state.language==='ruby'&&context.blockResult&&['map','collect'].includes(context.blockMethod)&&context.chain.at(-1)===context.blockMethod){
   const receiver=inferContext(editor.getValue(),editor.getCaret(),state.language,context.receiver,context.chain.slice(0,-1));
@@ -251,6 +258,9 @@ function renderSelectedMethods(){
 }
 function showMethodDetail(name,doc,scroll=true){
  const detail=$('#selected-detail');detail.replaceChildren();detail.hidden=false;
+ const preview=document.createElement('pre');preview.className='method-value-preview';
+ const previewParts=(selectedReceiver || '').split('.');
+ preview.textContent=previewText(methodPreview({source:editor.getValue(),caret:editor.getCaret(),language:state.language,receiver:previewParts[0],chain:previewParts.slice(1),method:name}));detail.append(preview);
  for(const button of $('#selected-methods').querySelectorAll('button')){const active=button.dataset.method===name;button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',String(active))}
  const guide=state.language==='python'?pythonGuide(name):methodGuide(state.language,name,doc);
  const overview=document.createElement('div');overview.className='learning-card';const caption=document.createElement('span');caption.className='selected-caption';caption.textContent='METHOD';const title=document.createElement('strong');title.textContent=doc?.name||`${selectedType}#${name}`;const text=document.createElement('p');text.textContent=guide.description;overview.append(caption,title,text);detail.append(overview);
@@ -304,7 +314,7 @@ function showReference(){
 }
 function ensureWorker(){
  if(worker || booting)return;
- if(['rust','cpp','csharp','java','crystal'].includes(state.language)){
+ if(['rust','cpp','csharp','java','crystal','go','elixir'].includes(state.language)){
   ready=true;status('READY');
   $('#execution-note').textContent=state.language==='rust'?'Rust runs as a fresh program. Run sends your code to the public Rust Playground service.':'Run sends your code to Compiler Explorer. C++ snippets are wrapped in main().';
   if(pending)execute();
@@ -361,7 +371,7 @@ function stopLivePreview(){previewController?.abort();previewController=null;cle
 function queueLivePreview(){
  stopLivePreview();const output=$('#live-preview-output');
  if(!$('#live-preview-toggle').checked){output.textContent='Enable auto-run to preview your code as you type.';return}
- if(['rust','cpp','csharp','java','crystal','python'].includes(state.language)){
+ if(['rust','cpp','csharp','java','crystal','go','elixir','python'].includes(state.language)){
   const language=state.language,code=editor.getValue();
   output.textContent='Waiting for you to pause…';
   previewTimer=setTimeout(async()=>{
@@ -395,8 +405,8 @@ function queueLivePreview(){
 }
 try { const saved=localStorage.getItem('codefield.playground.autorun'); $('#live-preview-toggle').checked=saved===null?['ruby','python','javascript'].includes(state.language):saved==='1' && ['ruby','python','javascript'].includes(state.language); } catch {}
 $('#live-preview-toggle').onchange=()=>{try{localStorage.setItem('codefield.playground.autorun',$('#live-preview-toggle').checked?'1':'0')}catch{} queueLivePreview();};
-function execute(){if($('#run').disabled)return;followOutput=true;latestButton.hidden=true;if(!ready){pending=true;ensureWorker();return}pending=false;$('#run').disabled=true;status('RUNNING');const code=editor.getValue();submittedCode=code;if(['rust','cpp','csharp','java','crystal'].includes(state.language)){runCompiled(code);return}worker.postMessage({type:'run',code});timer=setTimeout(()=>{stop();status('TIMEOUT');$('#execution-note').textContent='Execution stopped after 10 seconds. The session was reset.'},10000)}
-function selectLanguage(language){if(language!==state.language){if(['rust','cpp','csharp','java','crystal'].includes(language))$('#live-preview-toggle').checked=false;else{try{$('#live-preview-toggle').checked=localStorage.getItem('codefield.playground.autorun')!=='0'}catch{$('#live-preview-toggle').checked=true}}}activeProblem=null;stop();stopLivePreview();explorationKey='';selectedItems=null;$('#selected-panel').hidden=true;$('#reference-list').hidden=false;$('#selected-detail').hidden=true;$('#parent-path').replaceChildren();state.language=language;problemControl?.onLanguageChange();const data=content[language];if(editor)editor.destroy();editor=createEditor('#editor',{language,playground:true,value:typeof state.code[language]==='string'?state.code[language]:data.starter,label:`${language} code editor`,tokenize:language==='ruby'?tokenizeRuby:language==='rust'?tokenizeRust:language==='cpp'?tokenizeCpp:tokenizeJavaScript,complete,onCompletionHighlight:previewCompletion,onSelection:inspectSelection,onSetValue:()=>{problemControl?.onEdit();refreshRustWrapper();updateCodeMap();queueLivePreview();queueStudioAnalysis()},autoIndent:true,onChange:(value,info)=>{problemControl?.onEdit();state.code[state.language]=value;save();sendFloatingState();refreshRustWrapper();updateCodeMap();queueInference(value,info.caret);queueLivePreview();queueStudioAnalysis()}});refreshRustWrapper();updateCodeMap();$('#language').value=language;$('#file-name').textContent=data.filename;$('#editor-hint').textContent=language==='ruby'?'Ruby · persistent session':language==='rust'?'Rust · run sends code to Rust Playground':language==='cpp'?'C++ · run sends code to Compiler Explorer':'JavaScript · persistent worker';sendFloatingState();$('#challenge-title').textContent=data.exercise.title;$('#challenge-text').textContent=data.exercise.text;$('#hint-text').textContent=data.exercise.hint;$('#hint-text').hidden=true;$('#hint').textContent='Show hint';$('#search').value='';$('#inspection').hidden=true;$('#output').replaceChildren();for(const item of state.history.filter(h=>h.language===language))appendEntry(item.code,item.result);showReference();save();ensureWorker();queueLivePreview()}
+function execute(){if($('#run').disabled)return;followOutput=true;latestButton.hidden=true;if(!ready){pending=true;ensureWorker();return}pending=false;$('#run').disabled=true;status('RUNNING');const code=editor.getValue();submittedCode=code;if(['rust','cpp','csharp','java','crystal','go','elixir'].includes(state.language)){runCompiled(code);return}worker.postMessage({type:'run',code});timer=setTimeout(()=>{stop();status('TIMEOUT');$('#execution-note').textContent='Execution stopped after 10 seconds. The session was reset.'},10000)}
+function selectLanguage(language){if(language!==state.language){if(['rust','cpp','csharp','java','crystal','go','elixir'].includes(language))$('#live-preview-toggle').checked=false;else{try{$('#live-preview-toggle').checked=localStorage.getItem('codefield.playground.autorun')!=='0'}catch{$('#live-preview-toggle').checked=true}}}activeProblem=null;stop();stopLivePreview();explorationKey='';selectedItems=null;$('#selected-panel').hidden=true;$('#reference-list').hidden=false;$('#selected-detail').hidden=true;$('#parent-path').replaceChildren();state.language=language;problemControl?.onLanguageChange();const data=content[language];if(editor)editor.destroy();editor=createEditor('#editor',{language,playground:true,value:typeof state.code[language]==='string'?state.code[language]:data.starter,label:`${language} code editor`,tokenize:language==='ruby'?tokenizeRuby:language==='rust'?tokenizeRust:language==='cpp'?tokenizeCpp:tokenizeJavaScript,complete,onCompletionHighlight:previewCompletion,onSelection:inspectSelection,onSetValue:()=>{problemControl?.onEdit();refreshRustWrapper();updateCodeMap();queueLivePreview();queueStudioAnalysis()},autoIndent:true,onChange:(value,info)=>{problemControl?.onEdit();state.code[state.language]=value;save();sendFloatingState();refreshRustWrapper();updateCodeMap();queueInference(value,info.caret);queueLivePreview();queueStudioAnalysis()}});refreshRustWrapper();updateCodeMap();$('#language').value=language;$('#file-name').textContent=data.filename;$('#editor-hint').textContent=language==='ruby'?'Ruby · persistent session':language==='rust'?'Rust · run sends code to Rust Playground':language==='cpp'?'C++ · run sends code to Compiler Explorer':'JavaScript · persistent worker';sendFloatingState();$('#challenge-title').textContent=data.exercise.title;$('#challenge-text').textContent=data.exercise.text;$('#hint-text').textContent=data.exercise.hint;$('#hint-text').hidden=true;$('#hint').textContent='Show hint';$('#search').value='';$('#inspection').hidden=true;$('#output').replaceChildren();for(const item of state.history.filter(h=>h.language===language))appendEntry(item.code,item.result);showReference();save();ensureWorker();queueLivePreview()}
 $('#language').onchange=e=>selectLanguage(e.target.value);$('#search').oninput=showReference;$('#method-search').oninput=renderMethods;
 $('#selected-clear').onclick=()=>{selectionId++;selectedItems=null;$('#selected-panel').hidden=true;$('#reference-list').hidden=false;$('#search').value='';showReference()};
 $('#starter').onclick=()=>{const text=activeProblem?.language===state.language?activeProblem.starter:content[state.language].exercise.starter;editor.setValue(text);state.code[state.language]=text;save();editor.focus()};

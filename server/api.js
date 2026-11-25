@@ -111,7 +111,7 @@ export async function handleApi(req, res, url) {
       }
     }
     if (path === '/api/health' && req.method === 'GET') {
-      return json(res, 200, { ok: true, name: 'codefield', version: '0.5.5-alpha', providers: publicProviders().map(item => item.id) });
+      return json(res, 200, { ok: true, name: 'codefield', version: '0.6.0-alpha', providers: publicProviders().map(item => item.id) });
     }
     if (path === '/api/ai/providers' && req.method === 'GET') {
       return json(res, 200, { providers: publicProviders() });

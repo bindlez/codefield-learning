@@ -8,6 +8,8 @@ import {pythonMethods,pythonGuide} from './python-methods.js';
 import {pythonDocs} from './python-catalog.js';
 
 export function sharedCompletion(language, source, caret, context, bindings = {}) {
+  const modules={go:{strings:['Contains','Count','Fields','HasPrefix','HasSuffix','Join','ReplaceAll','Split','ToLower','ToUpper','TrimSpace'],fmt:['Print','Printf','Println','Sprint','Sprintf'],slices:['Clone','Contains','Delete','Equal','Index','Insert','Reverse','Sort'],maps:['Clone','Copy','Equal'],strconv:['Atoi','Itoa','ParseFloat','ParseInt']},elixir:{Enum:['all?','any?','at','count','each','filter','find','flat_map','frequencies','group_by','join','map','max','min','reduce','reverse','sort','sum','take','uniq'],String:['contains?','downcase','graphemes','length','replace','reverse','split','trim','upcase'],Map:['delete','fetch','get','has_key?','keys','merge','put','values'],MapSet:['delete','difference','intersection','member?','new','put','size','to_list','union'],IO:['inspect','puts']}};
+  if(modules[language]?.[context.receiver])return modules[language][context.receiver].filter(name=>name.startsWith(context.prefix||'')).map(label=>({label,insert:label,detail:context.receiver+' function',receiverType:context.receiver}));
   if (language === 'javascript') return javascriptCompletion({...context,source,caret,bindings});
   const inferred = inferContext(source,caret,language,context.receiver,context.chain);
   const type = inferred?.type || bindings[context.receiver];
@@ -18,6 +20,7 @@ export function sharedCompletion(language, source, caret, context, bindings = {}
   const owners = aliases[type] || [type];
   const names = new Set([...(map[type] || []),...docs.filter(doc=>owners.some(owner=>doc.name.startsWith(owner+'#') || doc.name.startsWith(owner+'.'))).map(doc=>doc.name.split(/[.#]/).at(-1).replace(/\(\)$/,''))]);
   if (language==='ruby' && type==='Set') for(const name of ['add','add?','include?','member?','delete','delete?','merge','subtract','union','intersection','difference','to_a','to_set','size','empty?','each','clear']) names.add(name);
+  if (language==='ruby' && ['Array','Hash','Set'].includes(type)) for(const name of ['tally','map','select','filter','find','count','each','reduce','group_by','any?','all?','none?']) names.add(name);
   return [...names].filter(name=>name.startsWith(context.prefix || '')).sort().map(label=>({label,insert:label,detail:language==='python'?pythonGuide(label).description:type+' method',receiverType:type}));
 }
 

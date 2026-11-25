@@ -974,7 +974,7 @@ function queueTrace() {
   const plan = state.plan, code = editor.getValue(), test = plan?.tests?.[0];
   const language = languageSelect.value;
   if (language !== 'javascript') {
-    const remote = ['rust','cpp','csharp','java','crystal'].includes(language);
+    const remote = ['rust','cpp','csharp','java','crystal','go','elixir'].includes(language);
     if (remote && !traceConsent.has(language)) {
       $('#trace-toggle').checked=false; output.hidden=true;
       status.textContent='Enable Live Trace to send this example to '+(language==='rust'?'Rust Playground.':'Compiler Explorer.');
@@ -1032,7 +1032,7 @@ function queueTrace() {
 }
 $('#trace-toggle').onchange = () => {
   const lang=languageSelect.value;
-  if ($('#trace-toggle').checked && ['cpp','rust','csharp','java','crystal'].includes(lang) && !traceConsent.has(lang)) {
+  if ($('#trace-toggle').checked && ['cpp','rust','csharp','java','crystal','go','elixir'].includes(lang) && !traceConsent.has(lang)) {
     if(confirm('Automatically send this solution and its published examples to '+(lang==='rust'?'Rust Playground':'Compiler Explorer')+' after edits?')) traceConsent.add(lang);
     else $('#trace-toggle').checked=false;
   }
@@ -1058,7 +1058,7 @@ languageSelect.onchange = async () => {
   $('#playground-practice').href='./index.html?problem='+encodeURIComponent(problem.slug)+'&language='+encodeURIComponent(language)+(state.variant?'&variant=harder':'');
   cancelTrace();
   try { if(['ruby','python','javascript'].includes(language) && localStorage.getItem('codefield.trace.enabled')!=='0'){$('#trace-toggle').checked=true;$('#trace-output').hidden=false;} } catch {}
-  if(['rust','cpp','csharp','java','crystal'].includes(language) && $('#trace-toggle').checked && !traceConsent.has(language)) {
+  if(['rust','cpp','csharp','java','crystal','go','elixir'].includes(language) && $('#trace-toggle').checked && !traceConsent.has(language)) {
     if(confirm('Send this solution and its published examples to '+(language==='rust'?'Rust Playground':'Compiler Explorer')+' automatically after edits?')) traceConsent.add(language);
     else {$('#trace-toggle').checked=false;$('#trace-output').hidden=true;}
   }
